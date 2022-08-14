@@ -3,4 +3,5 @@ project(ToyWebserver)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(ToyWebserver main.cpp)
+set(SOURCE_FILES main.cpp)
+add_executable(ToyWebserver ${SOURCE_FILES})

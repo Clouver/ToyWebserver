@@ -26,6 +26,12 @@ class Channel{
     function<void()>writeCallback;
     function<void()>connCallback;
 public:
+    Channel():Channel(0){};
+    Channel(int fd):fd_(fd), readCallback(0), writeCallback(0), connCallback(0){
+    };
+    int getfd(){
+        return fd_;
+    }
     void setfd(int fd){
         fd_ = fd;
     }
@@ -38,7 +44,14 @@ public:
     void setConnCallback(function<void()> func){
         readCallback = func;
     }
-
+    void handleEvents(){
+        if(readCallback)
+            readCallback();
+        if(writeCallback)
+            writeCallback();
+        if(connCallback)
+            connCallback();
+    }
 };
 
 class ListenChannel : Channel{
