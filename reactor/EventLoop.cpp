@@ -12,6 +12,8 @@ void EventLoop::start(){
 void EventLoop::loop() {
     while(loop_){
         pollAndHandle();
+
+        // 可能其他地方给当前loop添加了新的Channel，放在了toAdd里。
         unique_lock<mutex>lock(m, std::defer_lock); // 设置 defer_lock 创建时不加锁
         lock.try_lock();
         if(lock.owns_lock()){
@@ -31,14 +33,19 @@ void EventLoop::pollAndHandle() {
         ch->handleEvents();
     }
 }
-int EventLoop::bindThread(shared_ptr<std::thread> t) {
+int EventLoop::bindThread(shared_ptr<std::thread>& t) {
     // 传入了 this， thread 通过 this 唯一绑定了一个 EventLoop
-    t = shared_ptr<std::thread>(new thread(bind(&EventLoop::loop, this)));
+//    t = ;
+    return 0;
 }
 
-int EventLoop::addChannel(Channel& ch){
+int EventLoop::addChannel(shared_ptr<Channel>&& ch){
+    if(!ch)
+        return 0;
     unique_lock<mutex>lock(m);
-    toAdd.push(ch);
+    toAdd.push(std::move(ch));
+
     lock.unlock();
     cond.notify_one();
+    return 0;
 }

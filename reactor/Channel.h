@@ -8,19 +8,20 @@
 
 #include<functional>
 #include<memory>
-#include"TcpConnection.h"
 
 using namespace std;
 
 
 class Channel;
-
+class TcpConnection;
 typedef shared_ptr<Channel> SP_Channel;
 
 // channel 绑定 fd 和 回调
 class Channel{
     int fd_;
-    shared_ptr<TcpConnection>owner; // 不拥有 fd 本身。 weakptr?
+    std::weak_ptr<TcpConnection>owner_; // 不拥有 fd 本身。 weakptr?
+
+    int events;
 
     function<void()>readCallback;
     function<void()>writeCallback;
@@ -29,21 +30,33 @@ public:
     Channel():Channel(0){};
     Channel(int fd):fd_(fd), readCallback(0), writeCallback(0), connCallback(0){
     };
+
+    void setEvent(int e){
+        events = e;
+    }
+
     int getfd(){
         return fd_;
     }
     void setfd(int fd){
         fd_ = fd;
     }
+    shared_ptr<TcpConnection> getOwner(){
+        return owner_.lock();
+    }
+    void setOwner(std::weak_ptr<TcpConnection>owner){
+        owner_ = owner;
+    }
     void setReadCallback(function<void()> func){
         readCallback = func;
     }
     void setWriteCallback(function<void()> func){
-        readCallback = func;
+        writeCallback = func;
     }
     void setConnCallback(function<void()> func){
-        readCallback = func;
+        connCallback = func;
     }
+
     void handleEvents(){
         if(readCallback)
             readCallback();

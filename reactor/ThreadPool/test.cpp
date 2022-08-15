@@ -40,6 +40,7 @@ void func2(int x){
     }
 }
 
+
 int main(void){
     thread t1(bind(func2, 1 )), t2(bind(func2, 2 )), consumer(func1);
     t1.join();

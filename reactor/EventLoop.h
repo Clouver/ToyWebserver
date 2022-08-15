@@ -17,13 +17,16 @@
 using namespace std;
 
 class EventLoop {
-    shared_ptr<Poller>poller;
     mutex m;                // protect cond
     condition_variable cond; // for queue of new channel to add
-    queue<Channel>toAdd;    // new channel to add
+    queue<shared_ptr<Channel>>toAdd;    // new channel to add
+
+
     bool loop_;
 
 public:
+    shared_ptr<Poller>poller;
+
     EventLoop();
 
     void start();
@@ -33,10 +36,10 @@ public:
     // one loop one thread 实际上是 one thread one loop，loop整个交给thread了，而不是loop在调度thread
     // 把pollAndHandle 连带 this 当成 threadfunc 传进去。
     // 调用时机是 sever 初始化线程池，就一个一个加进去。
-    int bindThread(shared_ptr<thread> t);
+    int bindThread(shared_ptr<thread>& t);
 
     // channel 加给 poller，loop 时
-    int addChannel(Channel& ch);
+    int addChannel(shared_ptr<Channel>&& ch);
 };
 
 #endif //TOYWEBSERVER_EVENTLOOP_H
