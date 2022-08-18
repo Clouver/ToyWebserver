@@ -35,7 +35,7 @@ void TcpConnection::setCloseCallback(function<void()> func) {
 
 void TcpConnection::handleRead(){
 
-    ssize_t sz = readal(fd_, buf);
+    ssize_t sz = readAll(fd_, buf);
     if(sz == 0){
         // close todo 这里把channel的状态设置为 EPOLLHUP。 会和真正的意外断开EPOLLHUP混淆吗？
         // channel handleEvents 时的顺序 read write close，所以在read设置close关闭连接。
@@ -56,14 +56,13 @@ void TcpConnection::handleRead(){
 //        write(fd_, buf.c_str(), sz);
 
 //        cout<<buf<<endl;
-        cout<<endl<<endl<<endl;
         service.SolveRequest(channel->getfd(), buf);
     }
 }
 
 
 void TcpConnection::handleWrite(){
-    ssize_t sz = writeAl(fd_, toWrite);
+    ssize_t sz = writeAll(fd_, toWrite);
     if(sz == 0||sz == toWrite.size()){
         channel->setEvent(channel->getEvent()&(~EPOLLOUT) );
     }
@@ -73,14 +72,13 @@ void TcpConnection::handleWrite(){
         channel->setEvent(EPOLLOUT);
     }
 }
+
 void TcpConnection::handleClose(){
 
 };
 
-
-// todo close(fd_) 并不线程安全。 有可能仍然在 readHandle 这边就关了
-// 目前用代码逻辑来保证，必然先 channel->kill() 再 handleclose 再 release。
-// 例外只存在于，Server意外关闭。这种极端情况先不做考虑。
+// todo close(fd_) 有可能仍然在 readHandle 这边就关了
+// 但是read返回-1，也能正常处理。
 void TcpConnection::release(){
     // 取消注册
     // channel 存在的几个地方

@@ -20,9 +20,9 @@ class Poller;
 class Channel;
 
 class EventLoop {
-    mutex m;                // protect cond
-    condition_variable cond; // for queue of new channel to add
-    queue<shared_ptr<Channel>>toAdd;    // new channel to add
+    mutex m;                //
+    condition_variable cond; // 保护新增channel的队列
+    queue<shared_ptr<Channel>>toAdd;    // 新增队列
 
     bool loop_;
 
@@ -47,7 +47,6 @@ public:
     int addChannel(shared_ptr<Channel> ch);
 
     int delChannel(SP_Channel& ch);
-
 
     // 用于 wakeupCh 的绑定，仅仅用来解除 epoll_wait 的阻塞。
     void wakeupRead();

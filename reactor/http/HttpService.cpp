@@ -5,21 +5,20 @@
 #include <sys/socket.h>
 #include <iostream>
 #include <cstring>
-#include <csignal>
 #include "HttpService.h"
 #include "tools.h"
-#include "../tools/network.h"
 #include "../img/ImageTrans.h"
 
-//int SERVER_MAX_CONN = 100;
 bool ECHO_REQUEST_INFO = false;
 static bool ECHO_HEADERS = false;
 
-// To read the HTTP Request.
-// Presume length of request is limited which is a lazy way to implement.
-static int READ_BUFFER_SIZE = 1024;
 static string RES_DIR = "./res";
 static string default_file = "/404.html";
+
+void RequestHeaders::clear(){
+    headers.clear();
+    method=url=param=version = "";
+}
 
 unsigned long RequestHeaders::parse(const vector<char>& buf){
     int i=0, d=0;
@@ -53,65 +52,59 @@ unsigned long RequestHeaders::parse(const vector<char>& buf){
             d++;
         line = d==0?"":string(buf.begin()+i, buf.begin()+i+d );
         i+=d+2;
-        cout<<buf.size()<<" "<<i<<" "<<line<<" "<<line.empty()<<endl;
         if(line.empty())
             break;
         else{
             string::size_type x = line.find(':');
             string key = line.substr(0, x);
             string val = line.substr(x+2, line.size()-x-2);
-            cout<<key<<" "<<val<<endl;
             headers[key] = val;
         }
     }
 
-
-    if ( ECHO_HEADERS ){
-        // ECHO
-        // Chinese
-        cout<<"HTTP version:    "<<version<<endl;
-        cout<<"Request Method:  "<<method<<endl;
-        cout<<"Target Resource: "<<url<<endl;
-        cout<<"Params:          "<<param<<endl;
-        cout<<"Headers:         "<<endl;
-
-        for(auto & header : headers){
-            cout<<"                 "<<header.first.substr(0,15);
-            if(header.first.size() > 15 )
-                cout<<"...";
-            else
-                for(int i=0; i<15-(header.first.size())+3; i++)
-                    cout<<' ';
-            cout<<"\t:\t"<<header.second.substr(0, 20);
-
-            if(header.second.size() > 20)
-                cout<<"...";
-
-            cout<<endl;
-
-            if(header.first == "Accept")
-                cout<<"                 "<<"客户端接收文件类型"<<endl;
-            else if( header.first == "Accept-Encoding")
-                cout<<"                 "<<"编码类型"<<endl;
-            else if( header.first == "Accept-Language")
-                cout<<"                 "<<"语言"<<endl;
-            else if( header.first == "Cache-Control")
-                cout<<"                 "<<"缓存控制"<<endl;
-            else if( header.first == "Connection")
-                cout<<"                 "<<"是否保持连接"<<endl;
-            else if( header.first == "Host")
-                cout<<"                 "<<"主机"<<endl;
-            else if( header.first == "User-Agent")
-                cout<<"                 "<<"用户代理(浏览器)"<<endl;
-            else if( header.first == "Referer")
-                cout<<"                 "<<"提供者"<<endl;
-            else
-                cout<<"                 "<<"..."<<endl;
-        }
-    }
-
+//    if ( ECHO_HEADERS ){
+//        // ECHO
+//        cout<<"HTTP version:    "<<version<<endl;
+//        cout<<"Request Method:  "<<method<<endl;
+//        cout<<"Target Resource: "<<url<<endl;
+//        cout<<"Params:          "<<param<<endl;
+//        cout<<"Headers:         "<<endl;
+//
+//        for(auto & header : headers){
+//            cout<<"                 "<<header.first.substr(0,15);
+//            if(header.first.size() > 15 )
+//                cout<<"...";
+//            else
+//                for(int i=0; i<15-(header.first.size())+3; i++)
+//                    cout<<' ';
+//            cout<<"\t:\t"<<header.second.substr(0, 20);
+//
+//            if(header.second.size() > 20)
+//                cout<<"...";
+//
+//            cout<<endl;
+//
+//            if(header.first == "Accept")
+//                cout<<"                 "<<"客户端接收文件类型"<<endl;
+//            else if( header.first == "Accept-Encoding")
+//                cout<<"                 "<<"编码类型"<<endl;
+//            else if( header.first == "Accept-Language")
+//                cout<<"                 "<<"语言"<<endl;
+//            else if( header.first == "Cache-Control")
+//                cout<<"                 "<<"缓存控制"<<endl;
+//            else if( header.first == "Connection")
+//                cout<<"                 "<<"是否保持连接"<<endl;
+//            else if( header.first == "Host")
+//                cout<<"                 "<<"主机"<<endl;
+//            else if( header.first == "User-Agent")
+//                cout<<"                 "<<"用户代理(浏览器)"<<endl;
+//            else if( header.first == "Referer")
+//                cout<<"                 "<<"提供者"<<endl;
+//            else
+//                cout<<"                 "<<"..."<<endl;
+//        }
+//    }
     return i;
-
 }
 
 ResponseHeaders::ResponseHeaders(){
@@ -148,12 +141,11 @@ void ResponseHeaders::addHeader(string key, string value){
     buf[sz++] = '\n';
 }
 
-int ResponseHeaders::Write(int sk){
+unsigned long ResponseHeaders::Write(int sk){
     buf[sz++] = '\n';
     buf[sz] = 0;
     return send(sk, buf, sz, MSG_NOSIGNAL);
 }
-
 
 // Send static file "s" in "RES_DIR" to "sk". The file must be in "files" or default_file.
 void HttpService::getStatic(int sk, string s){
@@ -166,11 +158,11 @@ void HttpService::getStatic(int sk, string s){
 
     // Open file & Get size
     FILE *fp = fopen(s.c_str(),"r");
-    if(fp == NULL ){
+    if(fp == nullptr ){
         s= RES_DIR+default_file;
         fp = fopen(s.c_str(), "r");
-        if(fp == NULL ){
-            cout<<"not found "<<s<<endl;
+        if(fp == nullptr ){
+            std::cout<<"not found "<<s<<endl;
             return;
         }
     }
@@ -181,14 +173,13 @@ void HttpService::getStatic(int sk, string s){
 
     // Make response headers & Write headers
     ResponseHeaders rh;
-    cout<<s<<endl;
     if(s == RES_DIR+default_file)
         rh.addFirstLine("404", "Not Found");
     else
         rh.addFirstLine("200", "OK");
 
-    rh.addHeader("Server", "Simple-Httpd");
-    rh.addHeader("Connection", "close");
+    rh.addHeader("Server", "ToyWebserver");
+    rh.addHeader("Connection", "keep-alive");
     rh.addHeader("Content-Type", getType(s));
 
     char sz_s[1024];
@@ -200,7 +191,7 @@ void HttpService::getStatic(int sk, string s){
     // Write file
     char buffer[256];
     while(!feof(fp)){
-        int readed = fread(buffer, sizeof(char), 256, fp);
+        unsigned long readed = fread(buffer, sizeof(char), 256, fp);
         send(sk, buffer, readed, MSG_NOSIGNAL);
     }
     fclose(fp);
@@ -217,17 +208,9 @@ void HttpService::SolveRequest(int sk, const vector<char>& buf){
 
     // Read request
 
-
-    cout<<contentLen<<" "<<targetLen<<endl;
     if(multipart){
-        int ret = readMultiPart(sk, buf, 0);
-        for(int i=0; i<20; i++)
-            cout<<buf[i];
-        cout<<endl;
-        cout<<contentLen<<" "<<targetLen<<endl;
+        unsigned long ret = readMultiPart(buf, 0);
         if(contentLen == targetLen || ret == 0){
-            cout<<"up "<<endl;
-            cout<<h.method<<" "<<h.url<<endl;
             if(h.method=="POST" && h.url=="/picTrans"){
                 picTransform(sk); //todo
             }
@@ -236,7 +219,9 @@ void HttpService::SolveRequest(int sk, const vector<char>& buf){
         return;
     }
 
-    // Parsing headers
+    // 不是multipart，则是新请求
+    // 新请求先清空之前东西
+    // todo 这是给keep alive 准备的
     multipartBuf.clear();
     contentLen = 0;
     boundary.clear();
@@ -246,36 +231,31 @@ void HttpService::SolveRequest(int sk, const vector<char>& buf){
     if(h.headers.count("Content-Type")!=0&& h.headers["Content-Type"].find("multipart") != h.headers["Content-Type"].size()){
         multipart = true;
         string c = h.headers["Content-Type"];
-        int bi = c.find("boundary=");
+        unsigned long bi = c.find("boundary=");
         boundary = c.substr(bi+9, c.size()-bi-9);
 
-        int ret = readMultiPart(sk, buf, end);
+        readMultiPart(buf, end);
         char* tmp;
         targetLen = strtol(h.headers["Content-Length"].c_str(), &tmp, 0);
-        cout<<h.url<<endl;
     }
 
 
+    // 当前就两个功能，静态文件的获取 和 PicToChar
     if(h.method=="GET"){
-        // Response
-        cout<<"GetStatic"<<endl;
         getStatic(sk, h.url);
     }
     else if(h.method=="POST" && h.url=="/picTrans"){
-        cout<<multipartBuf.size()<<" "<<targetLen<<endl;
         if(multipartBuf.size() == targetLen)
-            picTransform(sk); //todo
+            picTransform(sk);
         else
             multipart = true;
-//        picTransform(sk, h); //todo
     }
 
-    // Close connection & Set thread flag
-    //shutdown(sk, SHUT_RDWR);
 }
 
 void HttpService::picTransform(int sk){
-    cout<<"pictransform"<<endl;
+    // 找开头 boundary
+    // content body 有额外文件信息 用 回车符（+换行）作为标识，直接跳过。
     int st=0, rcnt=4;
     while(rcnt>0){
         if(multipartBuf[st] == '\r'){
@@ -285,7 +265,8 @@ void HttpService::picTransform(int sk){
         st++;
     }
 
-    int ed=multipartBuf.size()-boundary.size();
+    // 找结尾 boundary
+    unsigned long ed=multipartBuf.size()-boundary.size();
     while(ed>0){
         bool ok=true;
         for(int j=0; j<boundary.size(); j++){
@@ -299,10 +280,12 @@ void HttpService::picTransform(int sk){
         ed--;
     }
 
+    // 文件本体
     vector<char>img;
     for(int i=st; i<ed; i++)
         img.push_back(multipartBuf[i]);
 
+    // 调用图片处理函数
     ImageTrans trans;
     vector<vector<char>> charImg= trans.loadpng(img);
     vector<char>toWrite;
@@ -313,17 +296,18 @@ void HttpService::picTransform(int sk){
         toWrite.push_back('\n');
     }
 
+    // response 的 header
     ResponseHeaders rh;
     rh.addFirstLine("200", "OK");
 
     rh.addHeader("Server", "ToyWebserver");
-    rh.addHeader("Connection", "close");
+    rh.addHeader("Connection", "keep-alive");
     rh.addHeader("Content-Type", "text/plain;charset=UTF-8");
 
     rh.addHeader("Content-Length", to_string(toWrite.size()));
     rh.Write(sk);
 
-    // Write file
+    // 写图片字符
     char buffer[257];
     int n=0;
     while(n<toWrite.size()){
@@ -334,10 +318,12 @@ void HttpService::picTransform(int sk){
         n+=i;
         send(sk, buffer, i, MSG_NOSIGNAL);
     }
-//    if(x == content.size())
-//        return;
-//    string boundary = content.substr(x+2, connect.size()-x-2);
-//
-//    readal(sk, )
 
+}
+
+unsigned long HttpService::readMultiPart(const vector<char>& buf, unsigned long shift){
+    for(unsigned long i=shift; i<buf.size(); i++) // 第一个请求，除了header的剩余
+        multipartBuf.push_back(buf[i]);
+    contentLen += buf.size()-shift;
+    return buf.size();
 }

@@ -4,11 +4,9 @@
 #include "network.h"
 #include <unistd.h>
 #include <fcntl.h>
+#include <iostream>
 
-const int backlog = 256;
-
-// todo 这里假设了一次能读完
-ssize_t readal(int fd, vector<char>& readTo){
+ssize_t readAll(int fd, vector<char>& readTo){
     readTo.clear();
     char buf[1025];
     ssize_t sum=0, once=0;
@@ -37,10 +35,10 @@ int setSocketNonBlocking(int fd){
     if (flag == -1) return -1;
     flag |= O_NONBLOCK;
     if (fcntl(fd, F_SETFL, flag) == -1) return -1;
+    return 0;
 }
 
-// todo 这里假设一次能写完 按理说写了一部分 错误了 也该把已写的保留？
-ssize_t writeAl(int fd, const string& writeFrom){
+ssize_t writeAll(int fd, const string& writeFrom){
     char buf[1025];
     ssize_t sum=0, once=0;
     for(int i=0; i<writeFrom.size();) {
@@ -52,8 +50,10 @@ ssize_t writeAl(int fd, const string& writeFrom){
         buf[i + j] = 0;
         i+=j;
         once = write(fd, buf, j);
-        if (once == -1)
+        if (once == -1){
+            std::cout<< strerror(errno)<<std::endl;
             return -1;
+        }
         else if (once == 0)
             return sum;
         else {
@@ -63,7 +63,7 @@ ssize_t writeAl(int fd, const string& writeFrom){
     return sum;
 }
 
-int createBindListen(int port){
+int createBindListen(int port, int backlog){
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if(fd == -1)
         return -1;
@@ -73,6 +73,8 @@ int createBindListen(int port){
         close(fd);
         return -1;
     }
+    setSocketNonBlocking(fd);
+
     sockaddr_in tobind{};
     memset(&tobind, 0, sizeof(tobind));
     tobind.sin_addr.s_addr = htonl(INADDR_ANY);

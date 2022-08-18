@@ -4,17 +4,18 @@
 
 #include "Poller.h"
 
-
-int EPOLL_WAIT_TIMEOUT = 50;
+int EPOLL_WAIT_TIMEOUT = 5000;
 
 Poller::Poller(){
     max_events = 100; // todo
     pollfd = epoll_create(max_events);
     eventBuffer = vector<struct epoll_event>(max_events);
 };
+
 Poller::~Poller(){
     close(pollfd);
 }
+
 int Poller::getPollFd(){
     return pollfd;
 }
@@ -27,9 +28,6 @@ vector<SP_Channel> Poller::poll(){
     int cnt = epoll_wait(pollfd, &*eventBuffer.begin(), max_events, EPOLL_WAIT_TIMEOUT);
     //string s(strerror(errno));
     vector<SP_Channel>active;
-
-//    if(cnt > 0)
-//        cout<<cnt<<" RWC: "<<(eventBuffer[0].events&EPOLLIN)<<" "<<(eventBuffer[0].events&EPOLLOUT)<<" "<<(eventBuffer[0].events&EPOLLHUP)<<endl;
 
     for(int i=0; i<cnt; i++){
         int curfd = eventBuffer[i].data.fd;
@@ -53,7 +51,6 @@ int Poller::add(SP_Channel& channel){
     unique_lock<mutex>lock(m);
 
     channelOfFd[channel->getfd()] = channel;
-//    connOfFd[channel->getfd()] = channel->getOwner();
 
     epoll_event e{};
     memset(&e, 0, sizeof(e));
@@ -62,9 +59,9 @@ int Poller::add(SP_Channel& channel){
     e.data.fd = channel->getfd();
     e.events = EPOLLIN|EPOLLHUP;//|EPOLLET;
     epoll_ctl(pollfd, EPOLL_CTL_ADD, channel->getfd(), &e);
+
     return 0;
 }
-
 
 int Poller::del(int fd){
     unique_lock<mutex>lock(m);
@@ -73,4 +70,6 @@ int Poller::del(int fd){
     channelOfFd.erase(fd);
     epoll_event e{};
     epoll_ctl(pollfd, EPOLL_CTL_DEL, fd, &e);
+
+    return 0;
 }

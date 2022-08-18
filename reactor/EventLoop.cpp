@@ -4,6 +4,11 @@
 
 #include "EventLoop.h"
 
+//chrono::steady_clock::time_point t1;
+//chrono::steady_clock::time_point t2;
+//t2 = chrono::steady_clock::now();
+//cout<<chrono::duration_cast<chrono::duration<double>>(t2 - t1).count()<<endl;
+
 EventLoop::EventLoop():poller(shared_ptr<Poller>(new Poller())), loop_(true){
 
     // eventfd 非阻塞
@@ -12,15 +17,18 @@ EventLoop::EventLoop():poller(shared_ptr<Poller>(new Poller())), loop_(true){
     wakeupCh->setReadCallback(bind(&EventLoop::wakeupRead, this));
     wakeupCh->setCloseCallback( bind(&EventLoop::closeWakeup, this));
 
-    addChannel(wakeupCh);
+    poller->add(wakeupCh);
 }
+
 void EventLoop::start(){
     loop_ = true;
 }
+
 void EventLoop::stop(){
     loop_ = false;
     // todo 阻塞在 loop 循环里，就不会查看 loop_的值。要传入信号将其唤醒。
 }
+
 void EventLoop::loop() {
     while(loop_){
         pollAndHandle();
@@ -30,9 +38,6 @@ void EventLoop::loop() {
         lock.try_lock();
         if(lock.owns_lock()){
             while(!toAdd.empty()){
-
-                // channel 的生命周期归 TcpConnection 管， conn调用release从所有保存channel的地方删除channel；
-                // 但是，toAdd 作为queue 并不好找到，所以这里加额外处理。
                 // todo 解决方式不太简洁
                 if(toAdd.front()->isAlive())
                     poller->add(toAdd.front());
@@ -43,41 +48,37 @@ void EventLoop::loop() {
     }
 }
 
-
 void EventLoop::pollAndHandle() {
+
     vector<SP_Channel> active = poller->poll();
     for(SP_Channel& ch : active){
         ch->handleEvents();
     }
 }
-int EventLoop::bindThread(shared_ptr<std::thread>& t) {
-    // 传入了 this， thread 通过 this 唯一绑定了一个 EventLoop
-//    t = ;
-    return 0;
-}
 
 int EventLoop::addChannel(shared_ptr<Channel> ch){
     if(!ch)
         return -1;
+
     unique_lock<mutex>lock(m);
     toAdd.push(std::move(ch));
-
     lock.unlock();
-    // todo 发出信号 如果poll阻塞住了可以醒来
     wakeup();
-
     return 0;
 }
 
-
 int EventLoop::delChannel(SP_Channel& ch){
-    poller->del(ch->getfd());
+    return poller->del(ch->getfd());
 }
 
-
+// 固定使用 8 位！
 void EventLoop::wakeupRead() {
-    vector<char>one(1);
-    int n = readal(wakeupfd, one);
+    uint64_t toread = 0;
+    if(read(wakeupfd,&toread,8) == -1) //
+    {
+        perror(NULL);
+        cout<<strerror(errno)<<endl;
+    }
 }
 
 void EventLoop::closeWakeup(){
@@ -85,5 +86,10 @@ void EventLoop::closeWakeup(){
 }
 
 void EventLoop::wakeup(){
-    writeAl(wakeupfd, "1" );
+    uint64_t towrite = 1;
+    if(write(wakeupfd,&towrite,8) == -1) //
+    {
+        perror(NULL);
+        cout<<strerror(errno)<<endl;
+    }
 }

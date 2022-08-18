@@ -8,10 +8,10 @@
 
 #include<functional>
 #include<memory>
+#include <utility>
 #include <sys/epoll.h>
 
 using namespace std;
-
 
 class Channel;
 class TcpConnection;
@@ -37,24 +37,27 @@ class Channel{
 
 public:
     Channel():Channel(0){};
-    Channel(int fd):fd_(fd),alive(true), readCallback(nullptr), writeCallback(nullptr), closeCallback(nullptr){
+
+    explicit Channel(int fd):fd_(fd),alive(true), events(0), readCallback(nullptr), writeCallback(nullptr), closeCallback(nullptr){
     };
 
-    bool isAlive(){
+    bool isAlive() const{
         return alive;
     }
+
     void kill(){
         alive = false;
     }
 
-    uint32_t getEvent(void){
+    uint32_t getEvent() const{
         return events;
     }
+
     void setEvent(uint32_t e){
         events = e;
     }
 
-    int getfd(){
+    int getfd() const{
         return fd_;
     }
     void setfd(int fd){
@@ -69,13 +72,13 @@ public:
     }
 
     void setReadCallback(function<void()> func){
-        readCallback = func;
+        readCallback = std::move(func);
     }
     void setWriteCallback(function<void()> func){
-        writeCallback = func;
+        writeCallback = std::move(func);
     }
     void setCloseCallback(function<void()>func){
-        closeCallback = func;
+        closeCallback = std::move(func);
     }
 
     void handleEvents(){

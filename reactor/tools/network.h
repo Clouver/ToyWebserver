@@ -16,12 +16,12 @@
 using namespace std;
 
 // todo 这里假设了一次能读完
-ssize_t readal(int fd, vector<char>& readTo);
+ssize_t readAll(int fd, vector<char>& readTo);
 
 // todo 这里假设一次能写完 按理说写了一部分 错误了 也该把已写的保留？
-ssize_t writeAl(int fd, const string& writeFrom);
+ssize_t writeAll(int fd, const string& writeFrom);
 
-int createBindListen(int port);
+int createBindListen(int port, int backlog);
 
 int setSocketNonBlocking(int fd);
 

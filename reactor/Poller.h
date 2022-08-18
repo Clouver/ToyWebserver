@@ -39,8 +39,6 @@ public:
     int add(SP_Channel& channel);
 
     int del(int fd);
-
 };
-
 
 #endif //TOYWEBSERVER_POLLER_H
