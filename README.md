@@ -39,12 +39,18 @@ A toy webserver for c++ practicing.
 # Day5
   1、算是基本完成，开始改进缺陷和添加http相关内容。如今还是echo服务器。<br>
   2、关于连接关闭的部分，muduo是把事件机制应用到底，eventloop那里存了channel，那就给eventloop添加任务让它自己去关闭。确实很简洁。 我目前的方式是单开一个关闭连接线程，看似不会影响主reactor的效率，但实际上这个关闭连接线程要等待 eventloop 的资源，假设一直阻塞，就会影响其他多个连接的关闭。然而eventloop的临界区涉及的操作都非常简单，往 map 里insert 和 从 map 里erase，不包含其它可能的阻塞或者大量计算任务，似乎没必要考虑那种极端情况。<br>
-  3、编译安装opencv，给picTochar功能做准备。
-  4、实现 multipart 功能。
-  5、实现picTochar接口。
-  6、麻了，前端真的难搞。
+  3、编译安装opencv，给picTochar功能做准备。<br>
+  4、实现 multipart 功能。<br>
+  5、实现picTochar接口。<br>
+  6、麻了，前端真的难搞。<br>
  
 # Day6
-  1、基本完工，下一步整理一下代码，还有部署，还有项目介绍。
-  2、已部署，辣鸡VPS一个pictochar请求要1秒钟。
-  3、准备简历 准备背书 准备面试。
+  1、基本完工，下一步整理一下代码，还有部署，还有项目介绍。<br>
+  2、已部署，辣鸡VPS一个pictochar请求要1秒钟。<br>
+  3、准备简历 准备背书 准备面试。<br>
+  4、访问部署的服务器发现非常慢，相比210ms的延迟来说有点过分，本地调试一下，发现连localhost会有 约300ms 的延迟，而且是一个页面多个请求，一个300ms一个5ms。<br>
+  反复刷新，每次都是一个100~300ms，另一个3-5ms，文件名并不影响。本地怎么会有300ms？而且时有时不有。<br>
+  调了一晚上，最后把地址从localhost改成127.0.0.1就没延迟了。<br>
+  细看Chrome 连接延迟的细分子类，发现是 initial connection部分很慢。<br>
+  乖乖，访问地球另一边的网站这个子类都是0，localhost专属延迟啊？<br>
+  真的麻完了给我。<br>
