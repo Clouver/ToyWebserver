@@ -20,7 +20,7 @@ public:
     int D=50;
 
     std::vector<char>c={
-            '@','#','G','O','s','<',':',',','.',' '
+            '@','#','G','O','s','c',':',',','.',
     };
 
     vector<vector<char>> loadpng(const std::vector<char>& file){
@@ -42,9 +42,14 @@ public:
         for(int i=0; i<m.rows; i++){
             ret.push_back(vector<char>());
             for(int j=0; j<m.cols; j++){
-                ret[i].push_back( c[ m.at<uchar>(i, j)* c.size() / 255 ]);
+                if(m.at<uchar>(i, j)* c.size() / 256 >= c.size())
+                    cout<<endl<<endl;
+                ret[i].push_back( c[ m.at<uchar>(i, j)* c.size() / 256 ]);
+                cout<<ret[i].back();
             }
+            cout<<endl;
         }
+        cout<<m.rows<<" "<<m.cols<<endl;
         return ret;
     }
 };
