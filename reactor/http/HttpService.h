@@ -50,6 +50,7 @@ public:
     void SolveRequest(int sk, const vector<char>& buf);
     void picTransform(int sk);
     static void getStatic(int sk, string s);
+    static void errorHandle(int sk);
 
     unsigned long readMultiPart(const vector<char>& buf, unsigned long shift);
 };

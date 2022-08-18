@@ -56,6 +56,7 @@ void TcpConnection::handleRead(){
 //        write(fd_, buf.c_str(), sz);
 
 //        cout<<buf<<endl;
+
         service.SolveRequest(channel->getfd(), buf);
     }
 }

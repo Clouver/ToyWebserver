@@ -12,8 +12,9 @@
 bool ECHO_REQUEST_INFO = false;
 static bool ECHO_HEADERS = false;
 
-static string RES_DIR = "./res";
-static string default_file = "/404.html";
+const string RES_DIR = "./res";
+const string default_file = "/404.html";
+const string error_file = "/500.html";
 
 void RequestHeaders::clear(){
     headers.clear();
@@ -147,6 +148,59 @@ unsigned long ResponseHeaders::Write(int sk){
     return send(sk, buf, sz, MSG_NOSIGNAL);
 }
 
+void HttpService::errorHandle(int sk){
+
+    string s = RES_DIR+error_file;
+
+    FILE *fp = fopen(s.c_str(),"r");
+    if(fp == nullptr ){
+        s= RES_DIR+default_file;
+        fp = fopen(s.c_str(), "r");
+        if(fp == nullptr ){
+            std::cout<<"not found "<<s<<endl;
+            return;
+        }
+    }
+
+    fseek(fp, 0, SEEK_END);
+    long fileSize = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    // Make response headers & Write headers
+    ResponseHeaders rh;
+    if(s == RES_DIR+default_file)
+        rh.addFirstLine("404", "Not Found");
+    else if( s == RES_DIR+error_file)
+        rh.addFirstLine("500", "InternalError");
+    else
+        rh.addFirstLine("200", "OK");
+
+    rh.addHeader("Server", "ToyWebserver");
+    rh.addHeader("Connection", "close");
+    rh.addHeader("Content-Type", getType(s));
+
+    char sz_s[1024];
+    sprintf(sz_s, "%ld", fileSize);
+    rh.addHeader("Content-Length", sz_s);
+
+    rh.Write(sk);
+
+    // Write file
+    char buffer[256];
+    while(!feof(fp)){
+        unsigned long readed = fread(buffer, sizeof(char), 256, fp);
+        send(sk, buffer, readed, MSG_NOSIGNAL);
+    }
+    buffer[0]='\r';
+    buffer[1]='\n';
+    buffer[2]=0;
+    send(sk, buffer, 2, MSG_NOSIGNAL);
+
+    fclose(fp);
+}
+
+
+
 // Send static file "s" in "RES_DIR" to "sk". The file must be in "files" or default_file.
 void HttpService::getStatic(int sk, string s){
 
@@ -194,6 +248,11 @@ void HttpService::getStatic(int sk, string s){
         unsigned long readed = fread(buffer, sizeof(char), 256, fp);
         send(sk, buffer, readed, MSG_NOSIGNAL);
     }
+    buffer[0]='\r';
+    buffer[1]='\n';
+    buffer[2]=0;
+    send(sk, buffer, 2, MSG_NOSIGNAL);
+
     fclose(fp);
 }
 
@@ -212,7 +271,13 @@ void HttpService::SolveRequest(int sk, const vector<char>& buf){
         unsigned long ret = readMultiPart(buf, 0);
         if(contentLen == targetLen || ret == 0){
             if(h.method=="POST" && h.url=="/picTrans"){
-                picTransform(sk); //todo
+                try{
+                    picTransform(sk);
+                }
+                catch (exception& e){
+                    cout<<e.what()<<endl;
+                    errorHandle(sk);
+                }
             }
             multipart = false;
         }
@@ -245,8 +310,15 @@ void HttpService::SolveRequest(int sk, const vector<char>& buf){
         getStatic(sk, h.url);
     }
     else if(h.method=="POST" && h.url=="/picTrans"){
-        if(multipartBuf.size() == targetLen)
-            picTransform(sk);
+        if(multipartBuf.size() == targetLen){
+            try{
+                picTransform(sk);
+            }
+            catch (exception& e){
+                cout<<e.what()<<endl;
+                errorHandle(sk);
+            }
+        }
         else
             multipart = true;
     }
@@ -318,6 +390,10 @@ void HttpService::picTransform(int sk){
         n+=i;
         send(sk, buffer, i, MSG_NOSIGNAL);
     }
+    buffer[0]='\r';
+    buffer[1]='\n';
+    buffer[2]=0;
+    send(sk, buffer, 2, MSG_NOSIGNAL);
 
 }
 
