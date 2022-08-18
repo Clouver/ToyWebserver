@@ -8,72 +8,44 @@
 #include <netinet/in.h>
 #include <csignal>
 #include "Channel.h"
+#include "EventLoop.h"
 #include <memory>
 #include <sys/epoll.h>
 #include "tools/network.h"
+#include "Channel.h"
+#include "http/HttpService.h"
 
 class EventLoop;
 class Channel;
+class HttpService;
 
-class TcpConnection {
-    int fd;
+class TcpConnection : public enable_shared_from_this<TcpConnection>{
+    int fd_;
     struct sockaddr_in addrin;
     std::shared_ptr<Channel> channel;
 
     shared_ptr<EventLoop> eventLoop_;
 
-    std::string buf;
+    vector<char> buf;
     std::string toWrite;
 
+    HttpService service;
 public:
-    TcpConnection(shared_ptr<EventLoop> eventLoop, shared_ptr<Channel>& ch){
-        eventLoop_ = eventLoop;
-        channel = ch;
-        fd = ch->getfd();
-    }
-    std::shared_ptr<Channel>& getChannel(){
-        return channel;
-    }
-    void handleRead(){
+    bool alive;
 
-        ssize_t sz = readal(fd, buf);
-        if(sz == 0){
-            // close todo
-        }
-        else if(sz == -1){
-            // err close todo
-        }
-        else{
-            // now just for test todo
-            for(int i=0; i<sz/2; i++)
-                swap(buf[i], buf[sz-i-1]);
-            write(fd, buf.c_str(), sz);
-        }
-    }
+    TcpConnection(int fd, shared_ptr<EventLoop> eventLoop);
+    std::shared_ptr<Channel>& getChannel();
 
-    void handleWrite(){
-        ssize_t sz = writeAl(fd, toWrite);
-        if(sz == 0){
-            //
-        }
-        else if(sz == toWrite.size()){
-        }
-        else if(sz < toWrite.size()){
-            // todo 剩余
-            toWrite = toWrite.substr(sz, toWrite.size()-sz);
-            channel->setEvent(EPOLLOUT);
-        }
-    }
+    shared_ptr<EventLoop> getLoop();
 
-    void handleClose(){
-        close(fd);
+    void setReadCallback(function<void()> func);
+    void setCloseCallback(function<void()> func);
+    void handleRead();
 
-    }
-
-    // 析构拥有的资源 比如 fd
-    ~TcpConnection(){
-        close(fd);
-    }
+    void handleWrite();
+    void handleClose();
+    void release();
+    ~TcpConnection();
 };
 
 

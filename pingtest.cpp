@@ -9,12 +9,18 @@
 #include <cstring>
 #include <iostream>
 #include <arpa/inet.h>
-#include <csignal>
+#include <signal.h>
+#include <functional>
 
 using namespace std;
 
-
 int main(void){
+    char aa[6] = "12321";
+    aa[2] = 0;
+    string test(aa);
+    cout<<test<<" "<<test.size()<<endl;
+
+    return 0;
 
     string s;
 
@@ -36,8 +42,8 @@ int main(void){
         else{
             strcpy(buf, s.c_str());
             int x = write(fd, buf, strlen(buf));
-            sleep(1);
             memset(buf, 0, sizeof(buf));
+
             read(fd, buf, 512);
             cout<<buf<<endl;
         }

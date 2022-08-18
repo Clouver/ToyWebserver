@@ -8,15 +8,13 @@
 const int backlog = 256;
 
 // todo 这里假设了一次能读完
-ssize_t readal(int fd, string& readTo){
+ssize_t readal(int fd, vector<char>& readTo){
     readTo.clear();
     char buf[1025];
     ssize_t sum=0, once=0;
     while(true) {
         once = read(fd, buf, 1024);
-        string s(strerror(errno));
         if (once == -1) {
-            int x = errno;
             if (errno == EINTR)
                 continue;
             else if (errno == EAGAIN)
@@ -28,7 +26,8 @@ ssize_t readal(int fd, string& readTo){
         else {
             sum+=once;
             buf[once] = 0;
-            readTo.append(buf);
+            for(unsigned long i=0; i<once; i++)
+                readTo.push_back(buf[i]);
         }
     }
 }

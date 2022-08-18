@@ -12,24 +12,29 @@
 #include <condition_variable>
 #include <queue>
 #include <functional>
-
+#include <sys/eventfd.h>
 
 using namespace std;
+
+class Poller;
+class Channel;
 
 class EventLoop {
     mutex m;                // protect cond
     condition_variable cond; // for queue of new channel to add
     queue<shared_ptr<Channel>>toAdd;    // new channel to add
 
-
     bool loop_;
 
+    SP_Channel wakeupCh;
+    int wakeupfd;
 public:
     shared_ptr<Poller>poller;
 
     EventLoop();
 
     void start();
+    void stop();
     void loop(); // 无限循环 pollAndHandle
     void pollAndHandle(); // handleConn 时会产生新的 connection、channel、acceptFd。
 
@@ -39,7 +44,15 @@ public:
     int bindThread(shared_ptr<thread>& t);
 
     // channel 加给 poller，loop 时
-    int addChannel(shared_ptr<Channel>&& ch);
+    int addChannel(shared_ptr<Channel> ch);
+
+    int delChannel(SP_Channel& ch);
+
+
+    // 用于 wakeupCh 的绑定，仅仅用来解除 epoll_wait 的阻塞。
+    void wakeupRead();
+    void closeWakeup();
+    void wakeup();
 };
 
 #endif //TOYWEBSERVER_EVENTLOOP_H

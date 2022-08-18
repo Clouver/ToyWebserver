@@ -169,8 +169,10 @@ void SendFile(int sk, string s){
     if(fp == NULL ){
         s= RES_DIR+default_file;
         fp = fopen(s.c_str(), "r");
-        if(fp == NULL )
+        if(fp == NULL ){
+            cout<<"not found "<<s<<endl;
             return;
+        }
     }
 
     fseek(fp, 0, SEEK_END);
