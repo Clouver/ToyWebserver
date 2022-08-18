@@ -1,18 +1,13 @@
 # ToyWebserver
 A toy webserver for c++ practicing.
 
-2022/08/14 开始
+2022/08/14 开始<br>
 
+2022/08/18 服务器演示已经部署。暂时告一段落复习基础知识准备面试。<br>
 
 
 // todo 项目简介
-
-
-
-
-
-
-
+// todo bench
 
 
 
@@ -51,3 +46,5 @@ A toy webserver for c++ practicing.
  
 # Day6
   1、基本完工，下一步整理一下代码，还有部署，还有项目介绍。
+  2、已部署，辣鸡VPS一个pictochar请求要1秒钟。
+  3、准备简历 准备背书 准备面试。
