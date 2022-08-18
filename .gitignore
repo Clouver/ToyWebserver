@@ -2,3 +2,5 @@
 /cmake-build-debug-wsl/
 /.cmake/
 /dst/
+/build/
+/reactor/ThreadPool/
