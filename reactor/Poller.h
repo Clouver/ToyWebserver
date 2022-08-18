@@ -15,6 +15,7 @@
 #include <iostream>
 #include "TcpConnection.h"
 #include <mutex>
+#include <unistd.h>
 
 using namespace std;
 

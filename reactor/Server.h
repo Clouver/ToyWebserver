@@ -11,7 +11,7 @@
 #include <functional>
 #include <fcntl.h>
 #include <csignal>
-
+#include <unistd.h>
 #include "tools/network.h"
 #include "TcpConnection.h"
 #include "EventLoop.h"
