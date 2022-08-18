@@ -3,6 +3,21 @@ A toy webserver for c++ practicing.
 
 2022/08/14 开始
 
+
+
+// todo 项目简介
+
+
+
+
+
+
+
+
+
+
+
+---------------------下面是混乱的notes---
 # Day1
   1、珠玉在前，先找资料学习 Reactor 模式，间中观摩一下 muduo 代码，互相参照。<br>
   2、新建文件夹 :)<br>
@@ -24,12 +39,15 @@ A toy webserver for c++ practicing.
   1、延迟没有问题。<br>
   2、计划有变，tcp连接的关闭的部分太碍眼，优先处理。 实现方式是单独设置一个关闭tcpconnection的thread，server启动时启动，关闭的fd放入队列作为临界区供subreactor安全访问。<br>
   3、去看了muduo源码，这部分是利用 runinloop 做到线程安全，一行就搞定了。而且loop的阻塞与触发也可以这样一并解决！ 之前看见里面functor queue相关的代码，以为是为了作为库的通用性存在的，我实现webserver是特化的可能用不上，现在看来是想岔了。（有种偷看答案的感觉。）<br>
-  4、shared_ptr 与 bind。 bind 的本质是一个functor！ 如果传入 shared_ptr，会导致引用计数+1，进一步 bind(func,A) 设置为 B 的回调函数，B 就会影响A的生命周期。这种情况还是用weak_ptr。
+  4、shared_ptr 与 bind。 bind 的本质是一个functor！ 如果传入 shared_ptr，会导致引用计数+1，bind(func,A) 设置为 B 的回调函数会间接循环引用。
 
 # Day5
   1、算是基本完成，开始改进缺陷和添加http相关内容。如今还是echo服务器。<br>
-  2、关于连接关闭的部分，muduo是把事件机制应用到底，eventloop那里存了channel，那就给eventloop添加任务让它自己去关闭。 我目前的方式是单开一个关闭连接线程，看似不会影响主reactor的效率，但实际上这个关闭连接线程要等待 eventloop 的资源，假设一直阻塞，就会影响其他多个连接的关闭。然而eventloop的临界区涉及的操作都非常简单，往 map 里insert 和 从 map 里erase，不包含其它可能的阻塞或者大量计算任务，似乎没必要考虑那种极端情况。<br>
+  2、关于连接关闭的部分，muduo是把事件机制应用到底，eventloop那里存了channel，那就给eventloop添加任务让它自己去关闭。确实很简洁。 我目前的方式是单开一个关闭连接线程，看似不会影响主reactor的效率，但实际上这个关闭连接线程要等待 eventloop 的资源，假设一直阻塞，就会影响其他多个连接的关闭。然而eventloop的临界区涉及的操作都非常简单，往 map 里insert 和 从 map 里erase，不包含其它可能的阻塞或者大量计算任务，似乎没必要考虑那种极端情况。<br>
   3、编译安装opencv，给picTochar功能做准备。
   4、实现 multipart 功能。
   5、实现picTochar接口。
   6、麻了，前端真的难搞。
+ 
+# Day6
+  1、基本完工，下一步整理一下代码，还有部署，还有项目介绍。
