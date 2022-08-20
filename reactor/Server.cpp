@@ -4,7 +4,7 @@
 
 #include "Server.h"
 
-const int connBacklog = 3000;
+const int connBacklog = 200;
 
 Server::Server():Server(0,0,connBacklog){};
 
@@ -13,7 +13,9 @@ shared_ptr<EventLoop> Server::getLoop() const {
 }
 
 Server::Server(int port, int threadNum, int maxConnSize):fd_(0), port_(port),
-                                                         threadNum_(threadNum),maxConnSize_(maxConnSize){
+                                                         threadNum_(threadNum),
+                                                         maxConnSize_(maxConnSize),
+                                                         mainLoop(nullptr),subLoops(), threads(){
     /*
      * Server 由几个部分组成：
      *      mainloop                即主reactor。这里不单开线程了，直接主线程进行loop。 也没有单独的 Acceptor，mainloop就是acceptor，只修改一下handleread。
@@ -22,9 +24,6 @@ Server::Server(int port, int threadNum, int maxConnSize):fd_(0), port_(port),
      *      connManager             负责释放已关闭的连接。
      */
 
-    setMainLoop();
-    runSubreactors();
-    runConnManager();
 }
 
 void Server::runSubreactors(){
@@ -36,31 +35,29 @@ void Server::runSubreactors(){
 }
 
 void Server::setMainLoop(){
-    fd_ = createBindListen(port_, maxConnSize_);
+    fd_ = createFdThenBindListen(port_, maxConnSize_);
 
     if(fd_ == -1)
         throw exception();
 
     /*
      * AcceptChannel 的定义。
-     * 传入server指针。
-     * 放入mainloop。
      *
      * acceptchannel 的 owner 为空
      */
-    mainLoop = make_shared<EventLoop>();
     ch_ = make_shared<Channel>(fd_);
-    ch_->setReadCallback( bind(&Server::handleConn, this));
-    mainLoop->poller->add(ch_);
+    ch_->setReadCallback( bind(&Server::handleNewConn, this));
+    mainLoop = make_shared<EventLoop>();
+    mainLoop->addChannel(ch_);
 }
-
 
 void Server::runConnManager(){
     connManaging = true;
-    connectionManager = make_shared<std::thread>( bind(&Server::destroyClosedConn, this));
+    connectionManager = make_shared<std::thread>( bind(&Server::handleDestroyingConn, this));
 }
 
-void Server::destroyClosedConn(){
+// connManager 的回调
+void Server::handleDestroyingConn(){
     while(connManaging){
         unique_lock<mutex> lock(connMutex);
         while(toClose.empty())
@@ -77,7 +74,7 @@ void Server::destroyClosedConn(){
     }
 }
 
-// 提醒 manager
+// 唤醒 manager
 void Server::handleClose(int fd){
     unique_lock<mutex>lock(connMutex);
     toClose.push(fd);
@@ -85,7 +82,8 @@ void Server::handleClose(int fd){
     connCond.notify_one();
 }
 
-void Server::handleConn(){
+// 新连接
+void Server::handleNewConn(){
     while(true){
         sockaddr addr{};
         socklen_t len = sizeof(addr);
@@ -98,6 +96,7 @@ void Server::handleConn(){
         if(newFd == -1)
             return;
 
+        // 线程池中随机
         shared_ptr<EventLoop>&loop = subLoops[rand()%threadNum_];
         shared_ptr<TcpConnection> conn = make_shared<TcpConnection>(newFd, loop);
         conn->getChannel()->setOwner(conn);
@@ -107,6 +106,11 @@ void Server::handleConn(){
 }
 
 void Server::start(){
+
+    setMainLoop();
+    runSubreactors();
+    runConnManager();
+
     mainLoop->start();
     mainLoop->loop();
 }
@@ -114,4 +118,11 @@ void Server::start(){
 Server::~Server(){
     for(int i=0; i<threadNum_; i++)
         subLoops[i]->stop();
+
+    connManaging = false;
+    connCond.notify_one();
+
+    close(fd_);
+
+    connOfFd.clear(); // 析构Connection
 }

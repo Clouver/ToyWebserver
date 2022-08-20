@@ -16,12 +16,9 @@ Poller::~Poller(){
     close(pollfd);
 }
 
-int Poller::getPollFd(){
-    return pollfd;
-}
 
 /* 初始 listenFd 对应的channel在server创建时创建，
- * 其他新 channel 在 poll 到 listenChannel 时，listenChannel->handleConn() 创建。
+ * 其他新 channel 在 poll 到 listenChannel 时，listenChannel->handleNewConn() 创建。
  */
 vector<SP_Channel> Poller::poll(){
 
@@ -31,7 +28,7 @@ vector<SP_Channel> Poller::poll(){
 
     for(int i=0; i<cnt; i++){
         int curfd = eventBuffer[i].data.fd;
-        // todo 效率应该会很低
+        // todo 有必要加锁吗？
         unique_lock<mutex>lock(m);
         if(channelOfFd.count(curfd) == 0)
             // 连接关闭是由单独的线程处理的，可能会迟一点导致仍然接收到 0byte 的 EPOLLIN
@@ -47,7 +44,7 @@ vector<SP_Channel> Poller::poll(){
     return active;
 }
 
-int Poller::add(SP_Channel& channel){
+int Poller::add(const SP_Channel& channel){
     unique_lock<mutex>lock(m);
 
     channelOfFd[channel->getfd()] = channel;
@@ -63,7 +60,8 @@ int Poller::add(SP_Channel& channel){
     return 0;
 }
 
-int Poller::del(int fd){
+int Poller::del(const SP_Channel& channel){
+    int fd = channel->getfd();
     unique_lock<mutex>lock(m);
     if(channelOfFd.count(fd)== 0)
         return -1;

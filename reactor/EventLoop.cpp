@@ -56,40 +56,38 @@ void EventLoop::pollAndHandle() {
     }
 }
 
-int EventLoop::addChannel(shared_ptr<Channel> ch){
+int EventLoop::addChannel(const shared_ptr<Channel>& ch){
     if(!ch)
         return -1;
 
     unique_lock<mutex>lock(m);
-    toAdd.push(std::move(ch));
+    toAdd.push(ch);
     lock.unlock();
     wakeup();
     return 0;
 }
 
 int EventLoop::delChannel(SP_Channel& ch){
-    return poller->del(ch->getfd());
+    return poller->del(ch);
 }
 
 // 固定使用 8 位！
-void EventLoop::wakeupRead() {
+void EventLoop::wakeupRead() const {
     uint64_t toread = 0;
-    if(read(wakeupfd,&toread,8) == -1) //
+    if(read(wakeupfd,&toread,8) == -1)
     {
-        perror(NULL);
         cout<<strerror(errno)<<endl;
     }
 }
 
-void EventLoop::closeWakeup(){
+void EventLoop::closeWakeup() const{
     close(wakeupfd);
 }
 
-void EventLoop::wakeup(){
+void EventLoop::wakeup() const{
     uint64_t towrite = 1;
-    if(write(wakeupfd,&towrite,8) == -1) //
+    if(write(wakeupfd,&towrite,8) == -1)
     {
-        perror(NULL);
         cout<<strerror(errno)<<endl;
     }
 }

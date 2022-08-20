@@ -15,13 +15,13 @@
 
 using namespace std;
 
-// todo 这里假设了一次能读完
+// todo 使用 char* 提高效率
 ssize_t readAll(int fd, vector<char>& readTo);
 
-// todo 这里假设一次能写完 按理说写了一部分 错误了 也该把已写的保留？
+// todo 使用 char* 提高效率
 ssize_t writeAll(int fd, const string& writeFrom);
 
-int createBindListen(int port, int backlog);
+int createFdThenBindListen(int port, int backlog);
 
 int setSocketNonBlocking(int fd);
 

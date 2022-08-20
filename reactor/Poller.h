@@ -30,16 +30,14 @@ class Poller {
 public:
     Poller();
     ~Poller();
-    int getPollFd();
 
-    /* 初始 listenFd 对应的channel在server创建时创建，
-     * 其他新 channel 在 poll 到 listenChannel 时，listenChannel->handleConn() 创建。
-     */
+    // 一次 epoll_wait
+    // todo buffer 取代 值传递的vector 应该能很好提高效率; poll( vector<>& )？
     vector<SP_Channel> poll();
 
-    int add(SP_Channel& channel);
+    int add(const SP_Channel& channel);
 
-    int del(int fd);
+    int del(const SP_Channel& channel);
 };
 
 #endif //TOYWEBSERVER_POLLER_H

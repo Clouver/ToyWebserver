@@ -3,3 +3,57 @@
 //
 
 #include "Channel.h"
+
+Channel::Channel(int fd):fd_(fd), alive(true), events(0),
+                            readCallback(nullptr),
+                            writeCallback(nullptr),
+                            closeCallback(nullptr){
+
+}
+
+bool Channel::isAlive() const{
+    return alive;
+}
+
+void Channel::kill(){
+    alive = false;
+}
+
+uint32_t Channel::getEvent() const{
+    return events;
+}
+
+void Channel::setEvent(uint32_t e){
+    events = e;
+}
+
+int Channel::getfd() const{
+    return fd_;
+}
+
+shared_ptr<TcpConnection> Channel::getOwner(){
+    return std::move(owner_.lock());
+}
+
+void Channel::setOwner(std::weak_ptr<TcpConnection>owner){
+    owner_ = std::move(owner);
+}
+
+void Channel::setReadCallback(function<void()> func){
+    readCallback = std::move(func);
+}
+void Channel::setWriteCallback(function<void()> func){
+    writeCallback = std::move(func);
+}
+void Channel::setCloseCallback(function<void()>func){
+    closeCallback = std::move(func);
+}
+
+void Channel::handleEvents(){
+    if(events&EPOLLIN && readCallback)
+        readCallback();
+    if(events&EPOLLOUT && writeCallback)
+        writeCallback();
+    if(events&EPOLLHUP && closeCallback)
+        closeCallback();
+}

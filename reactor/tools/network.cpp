@@ -63,7 +63,7 @@ ssize_t writeAll(int fd, const string& writeFrom){
     return sum;
 }
 
-int createBindListen(int port, int backlog){
+int createFdThenBindListen(int port, int backlog){
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if(fd == -1)
         return -1;
@@ -73,6 +73,7 @@ int createBindListen(int port, int backlog){
         close(fd);
         return -1;
     }
+
     setSocketNonBlocking(fd);
 
     sockaddr_in tobind{};

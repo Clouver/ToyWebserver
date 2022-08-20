@@ -15,8 +15,6 @@
 using namespace std;
 
 class ImageTrans{
-public:
-
     cv::Mat m;
     int D=50;
 
@@ -24,6 +22,7 @@ public:
             '@','#','G','O','s','c',':',',','.',
     };
 
+public:
     vector<vector<char>> loadpng(const std::vector<char>& file);
 };
 
