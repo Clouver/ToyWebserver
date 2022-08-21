@@ -13,6 +13,10 @@
 
 using namespace std;
 
+// todo buffer!
+
+// todo cleaner code!
+
 class RequestHeaders{
 
 public:

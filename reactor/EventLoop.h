@@ -30,7 +30,7 @@ class EventLoop {
     SP_Channel wakeupCh;
     int wakeupfd;
 public:
-    shared_ptr<Poller>poller;
+    shared_ptr<Poller>poller; // todo 当然应该改成私有
 
     EventLoop();
 
