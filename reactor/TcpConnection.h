@@ -6,44 +6,53 @@
 #define TOYWEBSERVER_TCPCONNECTION_H
 
 #include <netinet/in.h>
-#include <csignal>
-#include "Channel.h"
-#include "EventLoop.h"
-#include <memory>
-#include <sys/epoll.h>
-#include "tools/network.h"
-#include "Channel.h"
+
+//#include "Channel.h"
+//#include "EventLoop.h"
+//#include "tools/network.h"
 #include "http/HttpService.h"
+#include "tools/Buffer.h"
+
 
 class EventLoop;
 class Channel;
 class HttpService;
+class Server;
+class TcpConnection;
+
+class TcpConnectionFactory{
+public:
+    static shared_ptr<TcpConnection> create(int fd, const sockaddr_in* addr, const shared_ptr<Server>& server,
+                                    const shared_ptr<ServiceFactory>& serviceFact
+    );
+};
 
 class TcpConnection : public enable_shared_from_this<TcpConnection>{
     int fd_;
     struct sockaddr_in addrin;
+
     std::shared_ptr<Channel> channel;
+//    shared_ptr<EventLoop> eventLoop_; // Connection 不需要知道 channel 被哪个 loop 运行
 
-    shared_ptr<EventLoop> eventLoop_;
-
-    vector<char> buf;
+    Buffer buf;
     std::string toWrite;
 
-    HttpService service;
+    shared_ptr<Service> service;
 public:
-    bool alive;
+    friend class TcpConnectionFactory;
 
-    TcpConnection(int fd, shared_ptr<EventLoop> eventLoop);
-    std::shared_ptr<Channel>& getChannel();
+    bool alive; // todo 备用
 
-    shared_ptr<EventLoop> getLoop();
+    TcpConnection(int fd, const sockaddr_in* addr);
+//    TcpConnection(int fd, const sockaddr_in* addr, const shared_ptr<EventLoop>& eventLoop);
 
-    void setReadCallback(function<void()> func);
-    void setCloseCallback(function<void()> func);
+    std::shared_ptr<Channel> getChannel();
+    // 传递出去其实不太影响，因为channel本身不拥有资源！引用过多不及时析构并不影响。
+
     void handleRead();
-
     void handleWrite();
     void handleClose();
+    void handleError();
     void release();
     ~TcpConnection();
 };

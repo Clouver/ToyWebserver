@@ -10,7 +10,12 @@ A toy webserver for c++ practicing.
 // todo bench
 
 
+poolAndHandle   0.0002
 
+poll            0.0001
+loopForHandling 0.0001
+
+io per msg      0.000002
 
 ---------------------下面是混乱的notes---
 # Day1

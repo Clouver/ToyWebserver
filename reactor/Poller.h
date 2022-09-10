@@ -4,20 +4,16 @@
 
 #ifndef TOYWEBSERVER_POLLER_H
 #define TOYWEBSERVER_POLLER_H
-#include<vector>
-#include "Channel.h"
-#include <sys/epoll.h>
+#include <vector>
 #include <unordered_map>
-#include <cstring>
-#include <csignal>
-#include <cerrno>
-#include <string>
-#include <iostream>
-#include "TcpConnection.h"
 #include <mutex>
-#include <unistd.h>
+#include <memory>
 
 using namespace std;
+
+class Channel;
+typedef shared_ptr<Channel> SP_Channel;
+
 
 class Poller {
     int pollfd;
@@ -33,7 +29,7 @@ public:
 
     // 一次 epoll_wait
     // todo buffer 取代 值传递的vector 应该能很好提高效率; poll( vector<>& )？
-    vector<SP_Channel> poll();
+    void poll(vector<SP_Channel*>& active );
 
     int add(const SP_Channel& channel);
 

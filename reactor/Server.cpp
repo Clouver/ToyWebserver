@@ -4,18 +4,38 @@
 
 #include "Server.h"
 
+#include "TcpConnection.h"
+#include "EventLoop.h"
+#include "Channel.h"
+#include "tools/network.h"
+
+#include <sys/socket.h>
+#include <functional>
+#include <fcntl.h>
+#include <csignal>
+#include <unistd.h>
+#include <utility>
+#include <netinet/tcp.h>
+#include <cassert>
+#include <iostream>
+
+
 const int connBacklog = 200;
 
-Server::Server():Server(0,0,connBacklog){};
+Server::Server():fd_(0), port_(0),
+                 threadNum_(0),
+                 maxConnSize_(0){};
 
 shared_ptr<EventLoop> Server::getLoop() const {
     return mainLoop;
 }
 
-Server::Server(int port, int threadNum, int maxConnSize):fd_(0), port_(port),
+Server::Server(int port, int threadNum, int maxConnSize, shared_ptr<ServiceFactory> factory):fd_(0), port_(port),
                                                          threadNum_(threadNum),
                                                          maxConnSize_(maxConnSize),
-                                                         mainLoop(nullptr),subLoops(), threads(){
+                                                         mainLoop(nullptr),subLoops(), threads(),
+                                                         connFact(std::move(factory))
+                                                         {
     /*
      * Server 由几个部分组成：
      *      mainloop                即主reactor。这里不单开线程了，直接主线程进行loop。 也没有单独的 Acceptor，mainloop就是acceptor，只修改一下handleread。
@@ -51,40 +71,22 @@ void Server::setMainLoop(){
     mainLoop->addChannel(ch_);
 }
 
-void Server::runConnManager(){
-    connManaging = true;
-    connectionManager = make_shared<std::thread>( bind(&Server::handleDestroyingConn, this));
-}
+// 回调只在 eventloop 中执行则线程安全。
+void Server::handleClose(shared_ptr<TcpConnection> pconn){
 
-// connManager 的回调
-void Server::handleDestroyingConn(){
-    while(connManaging){
-        unique_lock<mutex> lock(connMutex);
-        while(toClose.empty())
-            connCond.wait(lock);
+    SP_Channel ch = pconn->getChannel();
+    ch->getRunner()->delChannel(ch);
+    connOfFd.erase(pconn->getChannel()->getfd());
 
-        while(!toClose.empty()){
-            int fd = toClose.front();
-            toClose.pop();
-            shared_ptr<TcpConnection> conn = connOfFd[fd];
-            connOfFd.erase(fd); // 析构即释放资源
-            conn->release();
-        }
-        lock.unlock();
-    }
-}
-
-// 唤醒 manager
-void Server::handleClose(int fd){
-    unique_lock<mutex>lock(connMutex);
-    toClose.push(fd);
-    lock.unlock();
-    connCond.notify_one();
+    assert(pconn.use_count() == 1);
+    assert(ch.use_count() == 2);
 }
 
 // 新连接
 void Server::handleNewConn(){
     while(true){
+
+        // todo 待封装成 acceptor
         sockaddr addr{};
         socklen_t len = sizeof(addr);
         int newFd = accept(fd_, &addr, &len);
@@ -93,15 +95,22 @@ void Server::handleNewConn(){
 
         setSocketNonBlocking(newFd);
 
-        if(newFd == -1)
-            return;
+        int t=1;
+        setsockopt(newFd, IPPROTO_TCP, TCP_NODELAY,&t, sizeof t);
+
+        shared_ptr<TcpConnection> conn = TcpConnectionFactory::create(newFd,
+                                                                      reinterpret_cast<sockaddr_in*>(&addr),
+                                                                      shared_from_this(),
+                                                                      connFact);
+        connOfFd[newFd] = conn;
 
         // 线程池中随机
         shared_ptr<EventLoop>&loop = subLoops[rand()%threadNum_];
-        shared_ptr<TcpConnection> conn = make_shared<TcpConnection>(newFd, loop);
-        conn->getChannel()->setOwner(conn);
-        conn->setCloseCallback( bind(&Server::handleClose, this, newFd));
-        connOfFd[newFd] = conn;
+//        loop->addChannel(conn->getChannel() ); // 入队列，等待处理 todo 无锁
+        if (loop->pushTask(bind(&EventLoop::addChannel, loop, conn->getChannel()) ) != 0){
+            conn->release();
+            connOfFd.erase(newFd);
+        }
     }
 }
 
@@ -109,7 +118,6 @@ void Server::start(){
 
     setMainLoop();
     runSubreactors();
-    runConnManager();
 
     mainLoop->start();
     mainLoop->loop();
@@ -118,9 +126,6 @@ void Server::start(){
 Server::~Server(){
     for(int i=0; i<threadNum_; i++)
         subLoops[i]->stop();
-
-    connManaging = false;
-    connCond.notify_one();
 
     close(fd_);
 

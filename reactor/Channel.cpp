@@ -31,12 +31,21 @@ int Channel::getfd() const{
     return fd_;
 }
 
-shared_ptr<TcpConnection> Channel::getOwner(){
-    return std::move(owner_.lock());
-}
+//shared_ptr<TcpConnection> Channel::getOwner(){
+//    return std::move(owner_.lock());
+//}
 
 void Channel::setOwner(std::weak_ptr<TcpConnection>owner){
     owner_ = std::move(owner);
+}
+
+
+shared_ptr<EventLoop> Channel::getRunner(){
+    return runner_.lock();
+}
+
+void Channel::setRunner(shared_ptr<EventLoop> eventLoop){
+    runner_ = eventLoop;
 }
 
 void Channel::setReadCallback(function<void()> func){

@@ -10,6 +10,7 @@
 #include <functional>
 #include <unordered_map>
 #include <vector>
+#include "../Service.h"
 
 using namespace std;
 
@@ -43,7 +44,7 @@ public:
     unsigned long Write(int sk);
 };
 
-class HttpService {
+class HttpService: public Service {
 public:
     bool multipart=false;
     vector<char> multipartBuf;
@@ -51,12 +52,17 @@ public:
     string boundary;
     unsigned long contentLen;
     unsigned long targetLen;
-    void SolveRequest(int sk, const vector<char>& buf);
+    void SolveRequest(int sk, const vector<char>& buf) ;
+    void SolveRequest(int sk, Buffer &buf) override;
     void picTransform(int sk);
     static void getStatic(int sk, string s);
     static void errorHandle(int sk);
 
     unsigned long readMultiPart(const vector<char>& buf, unsigned long shift);
+};
+
+class HttpServiceFactory : public ServiceFactory{
+    void create(std::shared_ptr<Service>& spService) override;
 };
 
 #endif //TOYWEBSERVER_HTTPSERVICE_H

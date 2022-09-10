@@ -2,62 +2,79 @@
 // Created by Clouver on 2022/8/13.
 //
 
+#include <csignal>
+#include <memory>
+#include <sys/epoll.h>
+#include <iostream>
+
 #include "TcpConnection.h"
+#include "Server.h"
 
-TcpConnection::TcpConnection(int fd, shared_ptr<EventLoop> eventLoop){
-    eventLoop_ = eventLoop;
-    fd_ = fd;
-    channel = make_shared<Channel>(fd_);
-    alive = true;
+#include "Channel.h"
+#include "EventLoop.h"
 
-//    channel->setOwner(shared_from_this()); 构造没有完成!
-    channel->setReadCallback( bind(&TcpConnection::handleRead, this) );
-    channel->setWriteCallback( bind(&TcpConnection::handleWrite, this) );
-    channel->setCloseCallback( bind(&TcpConnection::handleClose, this) );
+#include "tools/network.h"
+#include "tools/Timer.h"
 
-    eventLoop_->addChannel(channel);
+shared_ptr<TcpConnection> TcpConnectionFactory::create(int fd, const sockaddr_in* addr, const shared_ptr<Server>& server,
+                                                       const shared_ptr<ServiceFactory>& serviceFact
+                                                       ){
+    shared_ptr<TcpConnection> conn = make_shared<TcpConnection>(fd, addr);
+    serviceFact->create(conn->service);
 
+    SP_Channel channel = conn->getChannel();
+
+    channel->setOwner(conn);
+
+    // 传入原指针避免循环引用
+    channel->setReadCallback(  bind(&TcpConnection::handleRead , conn.get()) );
+    channel->setWriteCallback( bind(&TcpConnection::handleWrite, conn.get()) );
+    channel->setCloseCallback( bind(&Server::handleClose, server.get(), conn) );
+
+    return std::move(conn);
 }
-std::shared_ptr<Channel>& TcpConnection::getChannel(){
+
+
+TcpConnection::TcpConnection(int fd, const sockaddr_in* addr)
+:fd_( fd ), alive(true), addrin(*addr), service(), channel(make_shared<Channel>(fd)){
+}
+
+std::shared_ptr<Channel> TcpConnection::getChannel(){
     return channel;
 }
 
-shared_ptr<EventLoop> TcpConnection::getLoop(){
-    return eventLoop_;
-}
-void TcpConnection::setReadCallback(function<void()> func) {
-    channel->setReadCallback(func);
-}
-
-void TcpConnection::setCloseCallback(function<void()> func) {
-    channel->setCloseCallback(func);
-}
+//shared_ptr<EventLoop> TcpConnection::getLoop(){
+//    return eventLoop_;
+//}
+//void TcpConnection::setReadCallback(function<void()> func) {
+//    channel->setReadCallback(func);
+//}
+//
+//void TcpConnection::setCloseCallback(function<void()> func) {
+//    channel->setCloseCallback(func);
+//}
 
 void TcpConnection::handleRead(){
-
+    static Timer timer("\t\tread");
+    timer.tick();
+    buf.clear();
     ssize_t sz = readAll(fd_, buf);
+    timer.tock();
     if(sz == 0){
         // close todo 这里把channel的状态设置为 EPOLLHUP。 会和真正的意外断开EPOLLHUP混淆吗？
         // channel handleEvents 时的顺序 read write close，所以在read设置close关闭连接。
         channel->setEvent(channel->getEvent()|EPOLLHUP);
-        channel->kill();
+//        channel->kill();
         // handleRead 会成为 channel 的回调，在eventloop运行，kill是及时的不会导致处理已关闭的channel
-        alive = false;
+//        alive = false;
     }
     else if(sz == -1){
         channel->setEvent(channel->getEvent()|EPOLLHUP);
-        channel->kill();
-        alive = false;
+//        channel->kill();
+//        alive = false;
     }
     else{
-        // echo 服务 仅供测试 todo
-//        for(int i=0; i<sz/2; i++)
-//            swap(buf[i], buf[sz-i-1]);
-//        write(fd_, buf.c_str(), sz);
-
-//        cout<<buf<<endl;
-
-        service.SolveRequest(channel->getfd(), buf);
+        service->SolveRequest(channel->getfd(), buf);
     }
 }
 
@@ -75,7 +92,11 @@ void TcpConnection::handleWrite(){
 }
 
 void TcpConnection::handleClose(){
-
+    std::cout<<"close"<<std::endl;
+    getChannel()->kill();
+    const auto& ploop = getChannel()->getRunner();
+    ploop->pushTask( bind(&EventLoop::delChannel, ploop, getChannel()) );
+    ploop->wakeup();
 };
 
 // todo close(fd_) 有可能仍然在 readHandle 这边就关了
@@ -86,22 +107,20 @@ void TcpConnection::release(){
     // 1、 TcpConnection.channel SP 一直存在
     // 2、 EventLoop.toAdd[] SP
     // 3、 Poller.ChannelOfFd[] SP
-
-    channel->kill(); // 处理2
-    eventLoop_->delChannel(channel); // 处理3
-    channel.reset(); // 处理1
-
-    close(fd_);
-    fd_ = 0;
-}
-
-TcpConnection::~TcpConnection(){
     if(channel){
-        // 未正常 release。
-        // 正常应该在 handleClose 中调用了 release释放了channel
-        release();
+        channel->kill(); // 处理2
+//    channel->getRunner()->delChannel(channel); // 处理3  todo eventloop所在线程执行，则不会和poller竞争锁。
+        channel->setCloseCallback(nullptr);
+        channel->setReadCallback(nullptr);
+        channel->setWriteCallback(nullptr);
+        channel.reset(); // 处理1
     }
     if(fd_){
         close(fd_);
+        fd_ = 0;
     }
+}
+
+TcpConnection::~TcpConnection(){
+    release();
 }

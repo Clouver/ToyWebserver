@@ -14,6 +14,7 @@ using namespace std;
 
 class Channel;
 class TcpConnection;
+class EventLoop;
 typedef shared_ptr<Channel> SP_Channel;
 
 
@@ -27,7 +28,7 @@ class Channel{
     int fd_;
     bool alive;
     std::weak_ptr<TcpConnection>owner_; // 不拥有 fd 本身。 weakptr 防止循环
-
+    std::weak_ptr<EventLoop>runner_;
     // 不一定是epoll_wait 获得的events。
     // 例如 read 0 byte代表连接正常关闭，设置额外的EPOLLHUP去处理连接的关闭。
     uint32_t events;
@@ -52,8 +53,12 @@ public:
 
     int getfd() const;
 
-    shared_ptr<TcpConnection> getOwner();
+    //[[deprecated]] c14 todo 传递 Connection 出去很不好。Conn不及时析构会导致fd不被释放。
+//    shared_ptr<TcpConnection> getOwner();
     void setOwner(std::weak_ptr<TcpConnection>owner);
+
+    shared_ptr<EventLoop> getRunner();
+    void setRunner(shared_ptr<EventLoop> eventLoop);
 
     void setReadCallback(function<void()> func);
     void setWriteCallback(function<void()> func);

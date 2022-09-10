@@ -5,18 +5,15 @@
 #ifndef TOYWEBSERVER_NETWORK_H
 #define TOYWEBSERVER_NETWORK_H
 
-#include <sys/socket.h>
-#include <csignal>
-#include <exception>
-#include <netinet/in.h>
-#include <cstring>
+
 #include <string>
 #include <vector>
+#include "Buffer.h"
 
 using namespace std;
 
 // todo 使用 char* 提高效率
-ssize_t readAll(int fd, vector<char>& readTo);
+ssize_t readAll(int fd, Buffer& readTo);
 
 // todo 使用 char* 提高效率
 ssize_t writeAll(int fd, const string& writeFrom);

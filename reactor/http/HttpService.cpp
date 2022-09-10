@@ -255,7 +255,12 @@ void HttpService::getStatic(int sk, string s){
 
     fclose(fp);
 }
-
+void HttpService::SolveRequest(int sk, Buffer &buf){
+    vector<char>tmp;
+    for(int i=0; i<buf.size(); i++)
+        tmp.push_back(buf[i]);
+    SolveRequest(sk, tmp);
+}
 // preRead length max == READ_BUFFER_SIZE
 void HttpService::SolveRequest(int sk, const vector<char>& buf){
     // set SO_LINGER for close socket
@@ -402,4 +407,8 @@ unsigned long HttpService::readMultiPart(const vector<char>& buf, unsigned long 
         multipartBuf.push_back(buf[i]);
     contentLen += buf.size()-shift;
     return buf.size();
+}
+
+void HttpServiceFactory::create(std::shared_ptr<Service>& spService){
+    spService = std::make_shared<HttpService>();
 }

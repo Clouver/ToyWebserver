@@ -2,16 +2,28 @@
 // Created by Clouver on 2022/8/15.
 //
 #include "network.h"
+#include "Timer.h"
+#include "Buffer.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <iostream>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <cstring>
 
-ssize_t readAll(int fd, vector<char>& readTo){
-    readTo.clear();
-    char buf[1025];
+
+static const int BUFFER_SZ = 40960;
+
+ssize_t readAll(int fd, Buffer& readTo){
+
+    char buf[BUFFER_SZ];
     ssize_t sum=0, once=0;
     while(true) {
-        once = read(fd, buf, 1024);
+        static Timer readOnce("\t\t\treadOnce");
+        readOnce.tick();
+        once = read(fd, buf, BUFFER_SZ);
+        readOnce.tock();
+
         if (once == -1) {
             if (errno == EINTR)
                 continue;
@@ -22,10 +34,12 @@ ssize_t readAll(int fd, vector<char>& readTo){
         else if (once == 0)
             return sum;
         else {
-            sum+=once;
-            buf[once] = 0;
-            for(unsigned long i=0; i<once; i++)
-                readTo.push_back(buf[i]);
+            static Timer append("\t\t\tappend");
+            append.tick();
+                sum+=once;
+                buf[once] = 0;
+                readTo.append(buf, once);
+            append.tock();
         }
     }
 }
@@ -39,11 +53,11 @@ int setSocketNonBlocking(int fd){
 }
 
 ssize_t writeAll(int fd, const string& writeFrom){
-    char buf[1025];
+    char buf[4096];
     ssize_t sum=0, once=0;
     for(int i=0; i<writeFrom.size();) {
         int j = 0;
-        while (j + i < writeFrom.size() && j < 1024) {
+        while (j + i < writeFrom.size() && j < BUFFER_SZ) {
             buf[j] = writeFrom[i + j];
             j++;
         }

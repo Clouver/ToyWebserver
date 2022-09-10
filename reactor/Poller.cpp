@@ -3,12 +3,21 @@
 //
 
 #include "Poller.h"
+#include "Channel.h"
 
-int EPOLL_WAIT_TIMEOUT = 5000;
+#include <sys/epoll.h>
+#include <cstring>
+#include <csignal>
+#include <iostream>
+//#include <cerrno>
+//#include <string>
+//#include <iostream>
+
+int EPOLL_WAIT_TIMEOUT = 100000;
 
 Poller::Poller(){
-    max_events = 100; // todo
-    pollfd = epoll_create(max_events);
+    max_events = 1000; // todo
+    pollfd = epoll_create1(EPOLL_CLOEXEC);
     eventBuffer = vector<struct epoll_event>(max_events);
 };
 
@@ -16,39 +25,24 @@ Poller::~Poller(){
     close(pollfd);
 }
 
-
 /* 初始 listenFd 对应的channel在server创建时创建，
  * 其他新 channel 在 poll 到 listenChannel 时，listenChannel->handleNewConn() 创建。
  */
-vector<SP_Channel> Poller::poll(){
+void Poller::poll(vector<SP_Channel*>& active ){
 
     int cnt = epoll_wait(pollfd, &*eventBuffer.begin(), max_events, EPOLL_WAIT_TIMEOUT);
-    //string s(strerror(errno));
-    vector<SP_Channel>active;
 
     for(int i=0; i<cnt; i++){
         int curfd = eventBuffer[i].data.fd;
-        // todo 有必要加锁吗？
-        unique_lock<mutex>lock(m);
-        if(channelOfFd.count(curfd) == 0)
-            // 连接关闭是由单独的线程处理的，可能会迟一点导致仍然接收到 0byte 的 EPOLLIN
-            // todo 有没有更好的处理办法？
-            continue;
-        if(!channelOfFd[curfd]->isAlive())
-            continue;
-        SP_Channel cur = channelOfFd[eventBuffer[i].data.fd];
-        cur->setEvent(eventBuffer[i].events);
+        SP_Channel* cur = &channelOfFd[curfd];
+        (*cur)->setEvent(eventBuffer[i].events);
         active.push_back(cur);
     }
-
-    return active;
 }
 
 int Poller::add(const SP_Channel& channel){
-    unique_lock<mutex>lock(m);
 
     channelOfFd[channel->getfd()] = channel;
-
     epoll_event e{};
     memset(&e, 0, sizeof(e));
     // 坑点 epoll_ctl 的参数有fd，但epollevent里也必须设置好fd
@@ -62,7 +56,7 @@ int Poller::add(const SP_Channel& channel){
 
 int Poller::del(const SP_Channel& channel){
     int fd = channel->getfd();
-    unique_lock<mutex>lock(m);
+//    unique_lock<mutex>lock(m);
     if(channelOfFd.count(fd)== 0)
         return -1;
     channelOfFd.erase(fd);

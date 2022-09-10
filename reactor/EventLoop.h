@@ -5,7 +5,6 @@
 #ifndef TOYWEBSERVER_EVENTLOOP_H
 #define TOYWEBSERVER_EVENTLOOP_H
 
-#include "Poller.h"
 #include <memory>
 #include <thread>
 #include <mutex>
@@ -14,23 +13,28 @@
 #include <functional>
 #include <sys/eventfd.h>
 #include <unistd.h>
+#include "tools/CircleQueue.h"
 
 using namespace std;
 
 class Poller;
 class Channel;
+typedef shared_ptr<Channel> SP_Channel;
 
-class EventLoop {
+class EventLoop : public std::enable_shared_from_this<EventLoop> {
     mutex m;                //
     condition_variable cond; // 保护新增channel的队列
     queue<shared_ptr<Channel>>toAdd;    // 新增队列
+    CircleQueue<function<void()>>qTask;
 
     bool loop_;
 
     SP_Channel wakeupCh;
     int wakeupfd;
+
+    shared_ptr<Poller>poller;
+    vector<SP_Channel*>active;
 public:
-    shared_ptr<Poller>poller; // todo 当然应该改成私有
 
     EventLoop();
 
@@ -41,8 +45,10 @@ public:
 
     void pollAndHandle(); // handleNewConn 时会产生新的 connection、channel、acceptFd。
 
+    int pushTask(const function<void()> &f);
+
     // channel 加给 poller，loop 时
-    int addChannel(const shared_ptr<Channel>& ch);
+    void addChannel(const shared_ptr<Channel>& ch);
 
     int delChannel(SP_Channel& ch);
 

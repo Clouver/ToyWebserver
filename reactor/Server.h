@@ -5,43 +5,45 @@
 #ifndef TOYWEBSERVER_SERVER_H
 #define TOYWEBSERVER_SERVER_H
 
-#include "EventLoop.h"
-#include <sys/socket.h>
-#include <functional>
-#include <fcntl.h>
-#include <csignal>
-#include <unistd.h>
-#include "tools/network.h"
-#include "TcpConnection.h"
-#include "EventLoop.h"
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <unordered_map>
+#include <memory>
+#include <map>
+
+//#include "Service.h"
 
 
-class Server {
+class EventLoop;
+class Channel;
+class TcpConnectionFactory;
+class TcpConnection;
+class ServiceFactory;
+
+using namespace std;
+
+class Server : public std::enable_shared_from_this<Server>{
     shared_ptr<EventLoop> mainLoop;
     vector<shared_ptr<EventLoop>>subLoops;
-    vector<shared_ptr<std::thread>> threads; // todo 肯定要封装成线程池 尝试无锁队列
+    vector<shared_ptr<thread>> threads; // todo 肯定要封装成线程池 尝试无锁队列
 
     int fd_;
     int port_;
     int threadNum_;
     int maxConnSize_;
 
+    shared_ptr<ServiceFactory> connFact;
+
     shared_ptr<Channel>ch_;
 
-    // todo 设计上不该存在，权当条件变量的使用练习了。connection 在 subreactor 内的部分应该交给它自己处；
-    //  在Server里只有 connOfFd， unordered_map 感觉上不同线程read/write/erase互斥的key是线程安全的？
-    // 关闭连接
-    shared_ptr<std::thread>connectionManager;
-    mutex connMutex;
-    bool connManaging{};
-    condition_variable connCond;
-    queue<int>toClose;
-    unordered_map<int, shared_ptr<TcpConnection>>connOfFd;
+    map<int, shared_ptr<TcpConnection>>connOfFd;
 
 public:
     Server();
 
-    Server(int port, int threadNum, int maxConnSize);
+    Server(int port, int threadNum, int maxConnSize, shared_ptr<ServiceFactory> serviceFact);
 
     ~Server();
 
@@ -51,13 +53,12 @@ public:
 
     void setMainLoop();
 
-    void runConnManager();
-
     void start();
 
-    void handleDestroyingConn();
-
-    void handleClose(int fd);
+    // 传入一个 connection 的 share，延长 conn 声明周期直到channel reset。
+    // 避免 channel 调用回调的时候 connection 没了导致channel自己没了。
+    // 坏处是，如果不记得把 channel reset，会和 connection 循环引用。 而且必须在所有操作完成之后再 reset。
+    void handleClose(shared_ptr<TcpConnection> pconn);
 
     void handleNewConn();
 };

@@ -5,10 +5,15 @@
 
 
 #include "reactor/Server.h"
+#include "reactor/http/HttpService.h"
+#include "reactor/EventLoop.h"
+
+#include <csignal>
+#include <iostream>
 
 using namespace std;
 
-Server* serverForSig;
+shared_ptr<Server> serverForSig;
 
 void handleSigInt(int sig){
     if (sig == SIGINT){
@@ -24,12 +29,12 @@ int main(int argc, char**argv){
     int port = atoi(argv[1]);
     int tnum = atoi(argv[2]);
     int conns = atoi(argv[3]);
-    Server server(port, tnum, conns);
+    shared_ptr<Server> server = make_shared<Server>(port,tnum,conns,make_shared<HttpServiceFactory>());
 
-    serverForSig = &server;
+    serverForSig = server;
     signal(SIGINT, [](int sig){
         return handleSigInt(sig);
     }); // SIGINT 信号由 InterruptKey 产生，通常是 CTRL +C 或者 DELETE
 
-    server.start();
+    server->start();
 }

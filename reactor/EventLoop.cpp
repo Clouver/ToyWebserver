@@ -3,13 +3,28 @@
 //
 
 #include "EventLoop.h"
+#include "Poller.h"
+#include "Channel.h"
+#include "tools/Timer.h"
+
+#include <memory>
+#include <iostream>
+
+// for strerror
+#include <string.h>
+#include <syscall.h>
+
+using namespace std;
 
 //chrono::steady_clock::time_point t1;
 //chrono::steady_clock::time_point t2;
 //t2 = chrono::steady_clock::now();
 //cout<<chrono::duration_cast<chrono::duration<double>>(t2 - t1).count()<<endl;
 
-EventLoop::EventLoop():poller(shared_ptr<Poller>(new Poller())), loop_(true){
+const bool TIME_COST_DEBUG = true;
+static const size_t TASK_QUEUE_SIZE = 4;
+
+EventLoop::EventLoop():poller(make_shared<Poller>()), loop_(true), qTask(TASK_QUEUE_SIZE){
 
     // eventfd 非阻塞
     wakeupfd = eventfd(0, EFD_NONBLOCK);
@@ -31,43 +46,54 @@ void EventLoop::stop(){
 
 void EventLoop::loop() {
     while(loop_){
-        pollAndHandle();
+        if(TIME_COST_DEBUG){
+            static Timer timer("pollAndHandle");
+            // timer.runInTiming(bind(&EventLoop::pollAndHandle, this) );
+            timer.tick();
+            pollAndHandle();
+            timer.tock();
+        }
+        else
+            pollAndHandle();
 
-        // 可能其他地方给当前loop添加了新的Channel，放在了toAdd里。
-        unique_lock<mutex>lock(m, std::defer_lock); // 设置 defer_lock 创建时不加锁
-        lock.try_lock();
-        if(lock.owns_lock()){
-            while(!toAdd.empty()){
-                // todo 解决方式不太简洁
-                if(toAdd.front()->isAlive())
-                    poller->add(toAdd.front());
-                toAdd.pop();
-            }
-            lock.unlock();
+        while(!qTask.empty()){
+            qTask.front()();
+            qTask.pop();
         }
     }
 }
 
 void EventLoop::pollAndHandle() {
+    static Timer clear("\tclear"), poll("\tpoll "), handleEvent("\tloop ");
+    clear.tick();
+    active.clear();
+    clear.tock();
 
-    vector<SP_Channel> active = poller->poll();
-    for(SP_Channel& ch : active){
-        ch->handleEvents();
+    poll.tick();
+    poller->poll(active);
+    poll.tock();
+
+    handleEvent.tick();
+    for(SP_Channel* ch : active){
+        (*ch)->handleEvents();
     }
+    handleEvent.tock();
 }
 
-int EventLoop::addChannel(const shared_ptr<Channel>& ch){
-    if(!ch)
+int EventLoop::pushTask(const function<void()> &f){
+    if (qTask.push(f) != 0)
         return -1;
-
-    unique_lock<mutex>lock(m);
-    toAdd.push(ch);
-    lock.unlock();
     wakeup();
     return 0;
 }
 
+void EventLoop::addChannel(const shared_ptr<Channel>& ch){
+    ch->setRunner(shared_from_this());
+    poller->add(ch);
+}
+
 int EventLoop::delChannel(SP_Channel& ch){
+    ch->setCloseCallback(nullptr); // 消灭隐藏的connection； conn和channel 现在应当只剩 pconn / pconn->channel / ch
     return poller->del(ch);
 }
 
