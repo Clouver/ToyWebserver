@@ -48,7 +48,7 @@ Server::Server(int port, int threadNum, int maxConnSize, shared_ptr<ServiceFacto
 
 void Server::runSubreactors(){
     for(int i=0; i<threadNum_; i++){
-        subLoops.emplace_back(new EventLoop());
+        subLoops.push_back(make_shared<EventLoop>());
         subLoops.back()->start(); // 必须先设置 start，再创建线程。
         threads.push_back( make_shared<std::thread>(bind(&EventLoop::loop, subLoops.back())) );
     }
@@ -125,9 +125,9 @@ void Server::start(){
 
 Server::~Server(){
     for(int i=0; i<threadNum_; i++)
-        subLoops[i]->stop();
+        subLoops[i]->stop(), subLoops[i].reset();
+    for(int i=0; i<threadNum_; i++)
+        threads[i]->join(), threads[i].reset();
 
     close(fd_);
-
-    connOfFd.clear(); // 析构Connection
 }

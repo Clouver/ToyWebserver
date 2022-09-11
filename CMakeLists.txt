@@ -10,7 +10,7 @@ add_subdirectory(test/pingpong/ppserver)
 add_subdirectory(test/pingpong/ppclient)
 
 set(CMAKE_CXX_STANDARD 11)
-SET(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-pthread")
+SET(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-pthread -Wall -Og")
 
 set(SOURCE_FILES reactor/Server.cpp
         reactor/EventLoop.cpp
