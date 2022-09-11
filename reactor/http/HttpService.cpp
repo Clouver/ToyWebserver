@@ -272,7 +272,7 @@ void HttpService::SolveRequest(int sk, Buffer &buf){
                     picTransform(sk);
                 }
                 catch (exception& e){
-                    cout<<e.what()<<endl;
+                    cout<<"picTrans error:" <<e.what()<<endl;
                     errorHandle(sk);
                 }
             }
@@ -312,7 +312,7 @@ void HttpService::SolveRequest(int sk, Buffer &buf){
                 picTransform(sk);
             }
             catch (exception& e){
-                cout<<e.what()<<endl;
+                cout<<"picTrans error:" <<e.what()<<endl;
                 errorHandle(sk);
             }
         }

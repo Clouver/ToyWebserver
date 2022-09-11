@@ -78,9 +78,9 @@ void Server::handleClose(shared_ptr<TcpConnection> pconn){
     ch->getRunner()->delChannel(ch);
     connOfFd.erase(pconn->getChannel()->getfd());
 
-    assert(pconn.use_count() == 1);
-    assert(ch.use_count() == 2);
     pconn->release();
+    assert(pconn.use_count() == 1);
+    assert(ch.use_count() == 1);
 }
 
 // 新连接
