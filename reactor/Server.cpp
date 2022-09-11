@@ -80,6 +80,7 @@ void Server::handleClose(shared_ptr<TcpConnection> pconn){
 
     assert(pconn.use_count() == 1);
     assert(ch.use_count() == 2);
+    pconn->release();
 }
 
 // 新连接

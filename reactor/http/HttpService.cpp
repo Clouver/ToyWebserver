@@ -266,7 +266,7 @@ void HttpService::SolveRequest(int sk, Buffer &buf){
 
     if(multipart){
         unsigned long ret = readMultiPart(buf, 0);
-        if(contentLen == targetLen || ret == 0){
+        if(multipartBuf.size() == targetLen){
             if(h.method=="POST" && h.url=="/picTrans"){
                 try{
                     picTransform(sk);
@@ -306,6 +306,7 @@ void HttpService::SolveRequest(int sk, Buffer &buf){
         getStatic(sk, h.url);
     }
     else if(h.method=="POST" && h.url=="/picTrans"){
+
         if(multipartBuf.size() == targetLen){
             try{
                 picTransform(sk);
