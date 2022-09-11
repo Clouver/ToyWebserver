@@ -24,7 +24,7 @@ using namespace std;
 const bool TIME_COST_DEBUG = true;
 static const size_t TASK_QUEUE_SIZE = 4;
 
-EventLoop::EventLoop():poller(make_shared<Poller>()), loop_(true), qTask(TASK_QUEUE_SIZE){
+EventLoop::EventLoop():qTask(TASK_QUEUE_SIZE), loop_(true), poller(make_shared<Poller>()){
 
     // eventfd 非阻塞
     wakeupfd = eventfd(0, EFD_NONBLOCK);
@@ -41,7 +41,7 @@ void EventLoop::start(){
 
 void EventLoop::stop(){
     loop_ = false;
-    // todo 阻塞在 loop 循环里，就不会查看 loop_的值。要传入信号将其唤醒。
+    wakeup();
 }
 
 void EventLoop::loop() {
