@@ -23,13 +23,15 @@ public:
 
     void clear(){
         sz_ = 0;
+        buf_.clear();
     }
 
     void append(const char *tmp, size_t len){
-        while(sz_ + len > buf_.capacity())
-            buf_.reserve(buf_.capacity() * 2);
-        for(int i=0; i<len; i++)
-            buf_[i+sz_] = tmp[i];
+        copy(tmp, tmp+len, std::back_inserter(buf_));
+//        while(sz_ + len > buf_.capacity())
+//            buf_.reserve(buf_.capacity() * 2);
+//        for(size_t i=0; i<len; i++)
+//            buf_[i+sz_] = tmp[i];
 //        std::copy(tmp, tmp+len, &*buf_.begin() + sz_);
         sz_ += len;
     }

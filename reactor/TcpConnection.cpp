@@ -57,27 +57,20 @@ std::shared_ptr<Channel> TcpConnection::getChannel(){
 void TcpConnection::handleRead(){
     static Timer timer("\t\tread");
     timer.tick();
-    buf.clear();
-    ssize_t sz = readAll(fd_, buf);
+        buf.clear();
+        ssize_t sz = readAll(fd_, buf);
     timer.tock();
     if(sz == 0){
-        // close todo 这里把channel的状态设置为 EPOLLHUP。 会和真正的意外断开EPOLLHUP混淆吗？
         // channel handleEvents 时的顺序 read write close，所以在read设置close关闭连接。
         channel->setEvent(channel->getEvent()|EPOLLHUP);
-//        channel->kill();
-        // handleRead 会成为 channel 的回调，在eventloop运行，kill是及时的不会导致处理已关闭的channel
-//        alive = false;
     }
     else if(sz == -1){
         channel->setEvent(channel->getEvent()|EPOLLHUP);
-//        channel->kill();
-//        alive = false;
     }
     else{
         service->SolveRequest(channel->getfd(), buf);
     }
 }
-
 
 void TcpConnection::handleWrite(){
     ssize_t sz = writeAll(fd_, toWrite);
@@ -104,17 +97,15 @@ void TcpConnection::handleClose(){
 void TcpConnection::release(){
     // 取消注册
     // channel 存在的几个地方
-    // 1、 TcpConnection.channel SP 一直存在
-    // 2、 EventLoop.toAdd[] SP
-    // 3、 Poller.ChannelOfFd[] SP
+
     if(channel){
-        channel->kill(); // 处理2
-//    channel->getRunner()->delChannel(channel); // 处理3  todo eventloop所在线程执行，则不会和poller竞争锁。
-        channel->setCloseCallback(nullptr);
+        channel->kill();
+        channel->setCloseCallback(nullptr); // 循环引用
         channel->setReadCallback(nullptr);
         channel->setWriteCallback(nullptr);
         channel.reset(); // 处理1
     }
+
     if(fd_){
         close(fd_);
         fd_ = 0;
@@ -122,5 +113,5 @@ void TcpConnection::release(){
 }
 
 TcpConnection::~TcpConnection(){
-    release();
+    release(); // 无法等自己 release，channel 存在循环引用延长生命周期。
 }

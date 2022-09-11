@@ -21,19 +21,19 @@ void RequestHeaders::clear(){
     method=url=param=version = "";
 }
 
-unsigned long RequestHeaders::parse(const vector<char>& buf){
+unsigned long RequestHeaders::parse(const Buffer& buf){
     int i=0, d=0;
 
     // method 空格结尾
     while(buf[i+d]!=' ')
         d++;
-    method = string(buf.begin()+i, buf.begin()+i+d );
+    method = buf.toString(i, d);
     i+=d+1;
 
     d=0;
     while(buf[i+d]!=' ')
         d++;
-    string fullUrl = string(buf.begin()+i, buf.begin()+i+d );
+    string fullUrl = buf.toString(i, d);
     string::size_type pi = fullUrl.find('?');
     url = fullUrl.substr(0, pi);
     if(pi < fullUrl.size())
@@ -43,7 +43,7 @@ unsigned long RequestHeaders::parse(const vector<char>& buf){
     d=0;
     while(buf[i+d]!='\n')
         d++;
-    version = string(buf.begin()+i, buf.begin()+i+d );
+    version = buf.toString(i, d);
     i+=d+1;
     // headers
     while(true){
@@ -51,7 +51,7 @@ unsigned long RequestHeaders::parse(const vector<char>& buf){
         d=0;
         while(buf[i+d]!='\r')
             d++;
-        line = d==0?"":string(buf.begin()+i, buf.begin()+i+d );
+        line = d==0?"":buf.toString(i, d);
         i+=d+2;
         if(line.empty())
             break;
@@ -200,7 +200,6 @@ void HttpService::errorHandle(int sk){
 }
 
 
-
 // Send static file "s" in "RES_DIR" to "sk". The file must be in "files" or default_file.
 void HttpService::getStatic(int sk, string s){
 
@@ -256,13 +255,6 @@ void HttpService::getStatic(int sk, string s){
     fclose(fp);
 }
 void HttpService::SolveRequest(int sk, Buffer &buf){
-    vector<char>tmp;
-    for(int i=0; i<buf.size(); i++)
-        tmp.push_back(buf[i]);
-    SolveRequest(sk, tmp);
-}
-// preRead length max == READ_BUFFER_SIZE
-void HttpService::SolveRequest(int sk, const vector<char>& buf){
     // set SO_LINGER for close socket
 
 //    struct linger so_linger;
@@ -309,7 +301,6 @@ void HttpService::SolveRequest(int sk, const vector<char>& buf){
         targetLen = strtol(h.headers["Content-Length"].c_str(), &tmp, 0);
     }
 
-
     // 当前就两个功能，静态文件的获取 和 PicToChar
     if(h.method=="GET"){
         getStatic(sk, h.url);
@@ -327,7 +318,6 @@ void HttpService::SolveRequest(int sk, const vector<char>& buf){
         else
             multipart = true;
     }
-
 }
 
 void HttpService::picTransform(int sk){
@@ -402,11 +392,9 @@ void HttpService::picTransform(int sk){
 
 }
 
-unsigned long HttpService::readMultiPart(const vector<char>& buf, unsigned long shift){
-    for(unsigned long i=shift; i<buf.size(); i++) // 第一个请求，除了header的剩余
-        multipartBuf.push_back(buf[i]);
-    contentLen += buf.size()-shift;
-    return buf.size();
+unsigned long HttpService::readMultiPart(Buffer& buf, unsigned long shift){
+    multipartBuf.append(buf.buf()+shift, buf.size()-shift);
+    return buf.size()-shift;
 }
 
 void HttpServiceFactory::create(std::shared_ptr<Service>& spService){

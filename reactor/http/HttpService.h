@@ -26,7 +26,7 @@ public:
 
     string method, url, param, version;
 
-    unsigned long  parse(const vector<char>& buf);
+    unsigned long  parse(const Buffer& buf);
 };
 
 class ResponseHeaders{
@@ -47,18 +47,18 @@ public:
 class HttpService: public Service {
 public:
     bool multipart=false;
-    vector<char> multipartBuf;
+    Buffer multipartBuf;
     RequestHeaders h;
     string boundary;
     unsigned long contentLen;
     unsigned long targetLen;
-    void SolveRequest(int sk, const vector<char>& buf) ;
+
     void SolveRequest(int sk, Buffer &buf) override;
     void picTransform(int sk);
     static void getStatic(int sk, string s);
     static void errorHandle(int sk);
 
-    unsigned long readMultiPart(const vector<char>& buf, unsigned long shift);
+    unsigned long readMultiPart(Buffer& buf, unsigned long shift);
 };
 
 class HttpServiceFactory : public ServiceFactory{

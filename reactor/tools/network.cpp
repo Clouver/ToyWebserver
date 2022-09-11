@@ -12,7 +12,7 @@
 #include <cstring>
 
 
-static const int BUFFER_SZ = 40960;
+static const int BUFFER_SZ = 4096;
 
 ssize_t readAll(int fd, Buffer& readTo){
 
@@ -43,6 +43,31 @@ ssize_t readAll(int fd, Buffer& readTo){
         }
     }
 }
+
+//
+//ssize_t readAll(int fd, vector<char>& readTo){
+//    readTo.clear();
+//    char buf[1025];
+//    ssize_t sum=0, once=0;
+//    while(true) {
+//        once = read(fd, buf, 1024);
+//        if (once == -1) {
+//            if (errno == EINTR)
+//                continue;
+//            else if (errno == EAGAIN)
+//                return sum;
+////            else if(errno == )
+//        }
+//        else if (once == 0)
+//            return sum;
+//        else {
+//            sum+=once;
+//            buf[once] = 0;
+//            for(unsigned long i=0; i<once; i++)
+//                readTo.push_back(buf[i]);
+//        }
+//    }
+//}
 
 int setSocketNonBlocking(int fd){
     int flag = fcntl(fd, F_GETFL, 0);

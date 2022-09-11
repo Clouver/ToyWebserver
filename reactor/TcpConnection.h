@@ -44,10 +44,9 @@ public:
     bool alive; // todo 备用
 
     TcpConnection(int fd, const sockaddr_in* addr);
-//    TcpConnection(int fd, const sockaddr_in* addr, const shared_ptr<EventLoop>& eventLoop);
 
     std::shared_ptr<Channel> getChannel();
-    // 传递出去其实不太影响，因为channel本身不拥有资源！引用过多不及时析构并不影响。
+    // 传递出去其实不太影响，因为channel本身不拥有资源
 
     void handleRead();
     void handleWrite();

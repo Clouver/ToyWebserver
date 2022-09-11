@@ -15,6 +15,8 @@ using namespace std;
 // todo 使用 char* 提高效率
 ssize_t readAll(int fd, Buffer& readTo);
 
+ssize_t readAll(int fd, vector<char>& readTo);
+
 // todo 使用 char* 提高效率
 ssize_t writeAll(int fd, const string& writeFrom);
 
