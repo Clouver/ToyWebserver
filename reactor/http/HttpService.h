@@ -55,12 +55,8 @@ public:
 
     int SolveRequest(int sk, Buffer &buf) override;
     int picTransform(int sk);
-
     static int getStatic(int sk, string s);
-    static int getStaticBuffered(int sk, string s);
     static int errorHandle(int sk);
-    int errorHandleBuffered(int sk);
-
 
     unsigned long readMultiPart(Buffer& buf, unsigned long shift);
 };
