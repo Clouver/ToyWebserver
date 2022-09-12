@@ -88,6 +88,7 @@ void Server::handleClose(TcpConnection *pconn){
 //    cout<<endl;
 //    cout<<pconn->getName()<<endl;
     pconn->release();
+    auto connSave = connOfFd[pconn->getName()]; // 增加一个引用，避免析构函数在 lockguard 内调用，减少持有锁的时间
     lock_guard<mutex>lock(connMutex);
     connOfFd.erase(pconn->getName());
 }

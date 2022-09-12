@@ -40,7 +40,7 @@ class Server : public std::enable_shared_from_this<Server>{
 
     map<string, shared_ptr<TcpConnection>>connOfFd;
     int connId;
-    mutex connMutex;
+    mutex connMutex;    // todo 不如改成 hashmap 避免竞争？
 
 public:
     Server();
