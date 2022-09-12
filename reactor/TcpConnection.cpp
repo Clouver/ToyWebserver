@@ -29,7 +29,7 @@ shared_ptr<TcpConnection> TcpConnectionFactory::create(int fd, const sockaddr_in
     // 传入原指针避免循环引用
     channel->setReadCallback(  bind(&TcpConnection::handleRead , conn.get()) );
     channel->setWriteCallback( bind(&TcpConnection::handleWrite, conn.get()) );
-    channel->setCloseCallback( bind(&Server::handleClose, server.get(), conn) );
+    channel->setCloseCallback( bind(&Server::handleClose, server.get(), conn.get()) );
 
     return std::move(conn);
 }
@@ -85,24 +85,25 @@ void TcpConnection::handleWrite(){
 }
 
 void TcpConnection::handleClose(){
-    std::cout<<"close"<<std::endl;
-    getChannel()->kill();
-    const auto& ploop = getChannel()->getRunner();
-    ploop->pushTask( bind(&EventLoop::delChannel, ploop, getChannel()) );
-    ploop->wakeup();
+//    std::cout<<"close"<<std::endl;
+//    getChannel()->kill();
+//    const auto& ploop = getChannel()->getRunner();
+//    ploop->pushTask( bind(&EventLoop::delChannel, ploop, getChannel()) );
+//    ploop->wakeup();
+    // todo
 };
 
 
 void TcpConnection::release(){
 
     if(channel){
-        channel->kill();    // todo 必须显式调用 kill，因为用循环引用延长了 channel 的生命周期；
-        channel.reset(); // 处理1
+        channel->kill();
+        channel.reset();
     }
 
     if(fd_){
         shutdown(fd_, SHUT_WR);
-//        close(fd_);
+//        close(fd_); // todo 用rst保证关闭？
         fd_ = 0;
     }
 }

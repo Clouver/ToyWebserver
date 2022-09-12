@@ -56,7 +56,7 @@ int main(int argc, char**argv){
 
         if(connect(newFd, (sockaddr*)&dst, sizeof(dst)) != 0){
             cout<<"connect failed "<<endl;
-            strerror(errno);
+            cout<<strerror(errno)<<endl;
             continue;
         }
         t = 1;
@@ -67,11 +67,11 @@ int main(int argc, char**argv){
         shared_ptr<TcpConnection> conn = TcpConnectionFactory::create(
                 newFd,
                 reinterpret_cast<sockaddr_in*>(&addr),
-                make_shared<Server>(),
+                server,
                         connFact);
 
 //        cout<<"wtf? epoll_create1 return 0?"<<endl;
-        epoll_create1(EPOLL_CLOEXEC);  // todo 在connect 之后，第一次epoll_create 会异常返回0，但是又没有errno。
+//        epoll_create1(EPOLL_CLOEXEC);  // todo 在connect 之后，第一次epoll_create 会异常返回0，但是又没有errno。
 
         conns.push_back(conn);
         loops.push_back(make_shared<EventLoop>());
