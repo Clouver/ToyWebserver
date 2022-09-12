@@ -18,6 +18,10 @@ int EPOLL_WAIT_TIMEOUT = 100000;
 Poller::Poller(){
     max_events = 1000; // todo
     pollfd = epoll_create1(EPOLL_CLOEXEC);
+    int errnoSave = errno;
+    if(pollfd == -1){
+        cout<<"epoll create failed: "<<strerror(errno)<<endl;
+    }
     eventBuffer = vector<struct epoll_event>(max_events);
 };
 
@@ -31,7 +35,10 @@ Poller::~Poller(){
 void Poller::poll(vector<SP_Channel*>& active ){
 
     int cnt = epoll_wait(pollfd, &*eventBuffer.begin(), max_events, EPOLL_WAIT_TIMEOUT);
-
+    int errnoSave = errno;
+    if(cnt == -1){
+        cout<<strerror(errnoSave)<<endl;
+    }
     for(int i=0; i<cnt; i++){
         int curfd = eventBuffer[i].data.fd;
         SP_Channel* cur = &channelOfFd[curfd];
