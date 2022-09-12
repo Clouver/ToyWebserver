@@ -68,10 +68,13 @@ void TcpConnection::handleRead(){
         channel->setEvent(channel->getEvent()|EPOLLHUP);
     }
     else{
+        static Timer timer("\t\tsolve");
+        timer.tick();
         if (service->SolveRequest(channel->getfd(), buf) != 0){
             cout<<"solve failed"<<endl;
             channel->setEvent(channel->getEvent()|EPOLLHUP);
         }
+        timer.tock();
     }
 }
 

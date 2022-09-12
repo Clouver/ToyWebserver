@@ -21,6 +21,7 @@ int PingPongService::SolveRequest(int sk, Buffer &buf){
     cost += timer.tock();
     size += buf.size();
     cnt++;
+    return 0;
 }
 
 PingPongService::~PingPongService(){

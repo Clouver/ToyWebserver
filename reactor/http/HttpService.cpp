@@ -16,6 +16,146 @@ const string RES_DIR = "./res";
 const string default_file = "/404.html";
 const string error_file = "/500.html";
 
+const string errorpageBuffered = "<!DOCTPE html>\n"
+                                 "<html>\n"
+                                 "<head><title>404</title></head>\n"
+                                 "<body>\n"
+                                 "<p align=\"center\">  <image align=\"middle\" src=\"/pics/404.gif\"></p>\n"
+                                 "<p style=\"font-size_:50px\" align=\"center\"> 500 Internal Error</p>\n"
+                                 "</body>\n"
+                                 "</html>";
+
+const unordered_map<string, size_t> staticSize = {{"/index.html", 4056}};
+const unordered_map<string, string> staticBuffer = {{"/index.html","\n"
+                             "<!DOCTYPE html>\n"
+                             "<html>\n"
+                             "<head>\n"
+                             "    <meta charset=\"UTF-8\">\n"
+                             "    <!-- import CSS -->\n"
+                             "    <link rel=\"stylesheet\" href=\"https://unpkg.com/element-ui@2.15.8/lib/theme-chalk/index.css\">\n"
+                             "</head>\n"
+                             "<body style=\"font-family:monospace;\">\n"
+                             "<div id=\"app\">\n"
+                             "\n"
+                             "    <el-row>\n"
+                             "        <el-col :span=\"24\">\n"
+                             "            <div style=\"background:url(/pics/11.png);\n"
+                             "                background-repeat:no-repeat;\n"
+                             "                background-position:center;\n"
+                             "                top:0;width:100%;\n"
+                             "                height:120px;\n"
+                             "                background-size_:100% 100%;\">\n"
+                             "                <p align=\"center\" style=\"font-size_:30px;color:#FFFFFF\">ToyWebserver at your service!</p>\n"
+                             "            </div>\n"
+                             "        </el-col>\n"
+                             "    </el-row>\n"
+                             "    <el-row :gutter=\"20\">\n"
+                             "        <el-col :span=\"4\" :offset=\"4\">\n"
+                             "            <div>\n"
+                             "                延迟高是因为服务器在国外。<br>\n"
+                             "                服务器简易功能：<br>\n"
+                             "                1、静态资源GET<br>\n"
+                             "                2、POST picTochar服务<br>\n"
+                             "                3、code 404 500<br>\n"
+                             "                <br>\n"
+                             "                <br>\n"
+                             "                上传图片使用pictochar，仅支持图片，其它文件类型返回internal error。<br>\n"
+                             "            </div>\n"
+                             "\n"
+                             "        </el-col>\n"
+                             "        <el-col :span=\"4\">\n"
+                             "            <el-upload\n"
+                             "                    ref='upload'\n"
+                             "                    action=\"picTrans\"\n"
+                             "                    list-type=\"picture-card\"\n"
+                             "                    :auto-upload=\"true\"\n"
+                             "                    :on-success=\"printChar\"\n"
+                             "                    limit=\"1\"\n"
+                             "                    :file-list=\"files\"\n"
+                             "                    :on-remove=\"handleRemove\"\n"
+                             "                    :on-exceed=\"onexceed\"\n"
+                             "            >\n"
+                             "                <i slot=\"default\" class=\"el-icon-plus\"></i>\n"
+                             "                <div slot=\"file\" slot-scope=\"{file}\">\n"
+                             "                    <img\n"
+                             "                            class=\"el-upload-list__item-thumbnail\"\n"
+                             "                            :src=\"file.url\" alt=\"\"\n"
+                             "                    >\n"
+                             "                    <span class=\"el-upload-list__item-actions\">\n"
+                             "        <span\n"
+                             "                class=\"el-upload-list__item-preview\"\n"
+                             "                @click=\"handlePictureCardPreview(file)\"\n"
+                             "        >\n"
+                             "          <i class=\"el-icon-zoom-in\"></i>\n"
+                             "        </span>\n"
+                             "        <span\n"
+                             "                v-if=\"!disabled\"\n"
+                             "                class=\"el-upload-list__item-delete\"\n"
+                             "                @click=\"handleRemove(file)\"\n"
+                             "        >\n"
+                             "          <i class=\"el-icon-delete\"></i>\n"
+                             "        </span>\n"
+                             "      </span>\n"
+                             "                </div>\n"
+                             "            </el-upload>\n"
+                             "        </el-col>\n"
+                             "        <el-col :span=\"4\">\n"
+                             "            <div id=\"charimg\" style=\"font-size_:1px\" rows=\"20\" cols=\"20\" disabled>\n"
+                             "            </div>\n"
+                             "        </el-col>\n"
+                             "    </el-row>\n"
+                             "\n"
+                             "    <el-dialog :visible.sync=\"dialogVisible\">\n"
+                             "        <img width=\"100%\" :src=\"dialogImageUrl\" alt=\"\">\n"
+                             "    </el-dialog>\n"
+                             "\n"
+                             "</div>\n"
+                             "</body>\n"
+                             "\n"
+                             "<script src=\"https://cdn.jsdelivr.net/npm/vue@2.6.11\"></script>\n"
+                             "<!-- import Vue before Element -->\n"
+                             "<!--<script src=\"https://unpkg.com/vue/dist/vue.js\"></script>-->\n"
+                             "<!-- import JavaScript -->\n"
+                             "<script src=\"https://unpkg.com/element-ui@2.15.8/lib/index.js\"></script>\n"
+                             "\n"
+                             "<script>\n"
+                             "    new Vue({\n"
+                             "        el: '#app',\n"
+                             "        data() {\n"
+                             "            return {\n"
+                             "                dialogImageUrl: '',\n"
+                             "                dialogVisible: false,\n"
+                             "                disabled: false,\n"
+                             "                files : []\n"
+                             "            };\n"
+                             "        },\n"
+                             "        methods: {\n"
+                             "            handleRemove(file) {\n"
+                             "                let fileList = this.$refs.upload.uploadFiles;\n"
+                             "                let index = fileList.findIndex( fileItem => {return fileItem.uid === file.uid});\n"
+                             "                fileList.splice(index, 1);\n"
+                             "            },\n"
+                             "            printChar(res, file, fileList){\n"
+                             "                console.log(res);\n"
+                             "                document.getElementById(\"charimg\").innerText = res;\n"
+                             "            },\n"
+                             "            handlePictureCardPreview(file) {\n"
+                             "                this.dialogImageUrl = file.url;\n"
+                             "                this.dialogVisible = true;\n"
+                             "            },\n"
+                             "            onexceed(files, fileList){\n"
+                             "                this.$notify.error({\n"
+                             "                    title: '错误',\n"
+                             "                    message: '先删除当前图片'\n"
+                             "                });\n"
+                             "            }\n"
+                             "        }\n"
+                             "    })\n"
+                             "</script>\n"
+                             "</html>"},
+
+};
+
 void RequestHeaders::clear(){
     headers.clear();
     method=url=param=version = "";
@@ -148,6 +288,25 @@ unsigned long ResponseHeaders::Write(int sk){
     return send(sk, buf, sz, MSG_NOSIGNAL);
 }
 
+
+int HttpService::errorHandleBuffered(int sk){
+
+    // Make response headers & Write headers
+    ResponseHeaders rh;
+    rh.addFirstLine("500", "InternalError");
+    rh.addHeader("Server", "ToyWebserver");
+    rh.addHeader("Connection", "close");
+    rh.addHeader("Content-Type", "text/html");
+
+    char sz_s[1024];
+    sprintf(sz_s, "%ld", 216);
+    rh.addHeader("Content-Length", sz_s);
+
+    rh.Write(sk);
+    send(sk, errorpageBuffered.c_str(), 2, MSG_NOSIGNAL);
+    return 0;
+}
+
 int HttpService::errorHandle(int sk){
 
     string s = RES_DIR+error_file;
@@ -256,6 +415,28 @@ int HttpService::getStatic(int sk, string s){
     fclose(fp);
     return 0;
 }
+
+int HttpService::getStaticBuffered(int sk, string s) {
+    if(s=="/")
+        s+="index.html";
+
+    if(staticBuffer.find(s)!=staticBuffer.end()){
+        ResponseHeaders rh;
+        if(s == RES_DIR+default_file)
+            rh.addFirstLine("404", "Not Found");
+        else
+            rh.addFirstLine("200", "OK");
+
+        rh.addHeader("Server", "ToyWebserver");
+        rh.addHeader("Connection", "keep-alive");
+        rh.addHeader("Content-Type", getType(s));
+        rh.addHeader("Content-Length", to_string( staticSize.find(s)->second ) );
+
+        send(sk, staticBuffer.at(s).c_str(), staticBuffer.size(), MSG_NOSIGNAL);
+    }
+    return getStatic(sk, s);
+}
+
 int HttpService::SolveRequest(int sk, Buffer &buf){
     // set SO_LINGER for close socket
 
@@ -275,7 +456,7 @@ int HttpService::SolveRequest(int sk, Buffer &buf){
                 }
                 catch (exception& e){
                     cout<<"picTrans error:" <<e.what()<<endl;
-                    return errorHandle(sk);
+                    return errorHandleBuffered(sk);
                 }
             }
             multipart = false;
@@ -305,7 +486,7 @@ int HttpService::SolveRequest(int sk, Buffer &buf){
 
     // 当前就两个功能，静态文件的获取 和 PicToChar
     if(h.method=="GET"){
-        return getStatic(sk, h.url);
+        return getStaticBuffered(sk, h.url);
     }
     else if(h.method=="POST" && h.url=="/picTrans"){
 
@@ -315,7 +496,7 @@ int HttpService::SolveRequest(int sk, Buffer &buf){
             }
             catch (exception& e){
                 cout<<"picTrans error:" <<e.what()<<endl;
-                return errorHandle(sk);
+                return errorHandleBuffered(sk);
             }
         }
         else
@@ -401,6 +582,9 @@ unsigned long HttpService::readMultiPart(Buffer& buf, unsigned long shift){
     return buf.size()-shift;
 }
 
+
 void HttpServiceFactory::create(std::shared_ptr<Service>& spService){
     spService = std::make_shared<HttpService>();
 }
+
+
