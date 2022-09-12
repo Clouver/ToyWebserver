@@ -72,15 +72,15 @@ void Server::setMainLoop(){
 }
 
 // 回调只在 eventloop 中执行则线程安全。
-void Server::handleClose(shared_ptr<TcpConnection> pconn){
+// todo 只能正确处理连接处理时关闭，其它线程无法关闭某连接，否则可能读写关闭的socket。
+void Server::handleClose(const shared_ptr<TcpConnection>& pconn){
 
     SP_Channel ch = pconn->getChannel();
     ch->getRunner()->delChannel(ch);
-    connOfFd.erase(pconn->getChannel()->getfd());
 
     pconn->release();
-    assert(pconn.use_count() == 1);
-    assert(ch.use_count() == 1);
+
+    connOfFd.erase(ch->getfd());
 }
 
 // 新连接

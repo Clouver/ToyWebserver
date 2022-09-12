@@ -97,8 +97,8 @@ int main(int argc, char**argv){
 
     conns.clear();
     loops.clear();
-
     double second = timer.tock();
+    sleep(1); // clean close
     cout<< "time cost       :  "<<second <<endl;
     cout<< "recived pack num:  "<<PingPongService::sumCnt<<endl;
     cout<< "recived data size_: "<<PingPongService::sumSize<<endl;

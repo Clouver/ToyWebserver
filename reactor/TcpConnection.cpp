@@ -92,14 +92,11 @@ void TcpConnection::handleClose(){
     ploop->wakeup();
 };
 
-// todo close(fd_) 有可能仍然在 readHandle 这边就关了
-// 但是read返回-1，也能正常处理。
+
 void TcpConnection::release(){
-    // 取消注册
-    // channel 存在的几个地方
 
     if(channel){
-        channel->kill();
+        channel->kill();    // todo 必须显式调用 kill，因为用循环引用延长了 channel 的生命周期；
         channel.reset(); // 处理1
     }
 

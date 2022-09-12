@@ -58,7 +58,7 @@ public:
     // 传入一个 connection 的 share，延长 conn 声明周期直到channel reset。
     // 避免 channel 调用回调的时候 connection 没了导致channel自己没了。
     // 坏处是，如果不记得把 channel reset，会和 connection 循环引用。 而且必须在所有操作完成之后再 reset。
-    void handleClose(shared_ptr<TcpConnection> pconn);
+    void handleClose(const shared_ptr<TcpConnection>& pconn);
 
     void handleNewConn();
 };

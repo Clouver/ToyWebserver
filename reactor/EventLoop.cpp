@@ -93,7 +93,6 @@ void EventLoop::addChannel(const shared_ptr<Channel>& ch){
 }
 
 int EventLoop::delChannel(SP_Channel& ch){
-    ch->setCloseCallback(nullptr); // 消灭隐藏的connection； conn和channel 现在应当只剩 pconn / pconn->channel / ch
     return poller->del(ch);
 }
 
