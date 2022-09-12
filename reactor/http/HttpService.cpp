@@ -25,7 +25,6 @@ const string errorpageBuffered = "<!DOCTPE html>\n"
                                  "</body>\n"
                                  "</html>";
 
-const unordered_map<string, size_t> staticSize = {{"/index.html", 4056}};
 const unordered_map<string, string> staticBuffer = {{"/index.html","\n"
                              "<!DOCTYPE html>\n"
                              "<html>\n"
@@ -546,7 +545,6 @@ int HttpService::getStatic(int sk, string s){
 int HttpService::getStaticBuffered(int sk, string s) {
     if(s=="/")
         s+="index.html";
-
     if(staticBuffer.find(s)!=staticBuffer.end()){
         ResponseHeaders rh;
         if(s == RES_DIR+default_file)
@@ -557,9 +555,10 @@ int HttpService::getStaticBuffered(int sk, string s) {
         rh.addHeader("Server", "ToyWebserver");
         rh.addHeader("Connection", "keep-alive");
         rh.addHeader("Content-Type", getType(s));
-        rh.addHeader("Content-Length", to_string( staticSize.find(s)->second ) );
+        rh.addHeader("Content-Length", to_string(staticBuffer.find(s)->second.size() ) );
         rh.Write(sk);
-        send(sk, staticBuffer.at(s).c_str(), staticBuffer.size(), MSG_NOSIGNAL);
+        send(sk, staticBuffer.at(s).c_str(), staticBuffer.find(s)->second.size(), MSG_NOSIGNAL);
+        return 0;
     }
     return getStatic(sk, s);
 }

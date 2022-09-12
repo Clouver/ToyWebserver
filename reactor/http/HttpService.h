@@ -59,6 +59,10 @@ public:
     static int errorHandle(int sk);
 
     unsigned long readMultiPart(Buffer& buf, unsigned long shift);
+
+    int getStaticBuffered(int sk, string s);
+
+    int errorHandleBuffered(int sk);
 };
 
 class HttpServiceFactory : public ServiceFactory{
