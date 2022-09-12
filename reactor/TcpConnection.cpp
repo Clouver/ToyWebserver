@@ -107,7 +107,8 @@ void TcpConnection::release(){
     }
 
     if(fd_){
-        close(fd_);
+        shutdown(fd_, SHUT_WR);
+//        close(fd_);
         fd_ = 0;
     }
 }
