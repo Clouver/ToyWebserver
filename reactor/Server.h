@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <memory>
 #include <map>
+#include "ConnectionSet.h"
 
 //#include "Service.h"
 
@@ -37,6 +38,8 @@ class Server : public std::enable_shared_from_this<Server>{
     shared_ptr<ServiceFactory> connFact;
 
     shared_ptr<Channel>ch_;
+
+    ConnectionSet connSet;
 
     map<string, shared_ptr<TcpConnection>>connOfFd;
     int connId;

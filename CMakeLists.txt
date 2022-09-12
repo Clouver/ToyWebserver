@@ -23,7 +23,7 @@ set(SOURCE_FILES reactor/Server.cpp
         reactor/img/ImageTrans.cpp
         reactor/Service.cpp reactor/Service.h
         reactor/tools/Timer.cpp reactor/tools/Timer.h
-        reactor/tools/CircleQueue.h reactor/tools/CircleQueue.cpp reactor/tools/Buffer.cpp reactor/tools/Buffer.h)
+        reactor/tools/CircleQueue.h reactor/tools/CircleQueue.cpp reactor/tools/Buffer.cpp reactor/tools/Buffer.h reactor/ConnectionSet.cpp reactor/ConnectionSet.h)
 
 add_executable(ToyWebserver ${SOURCE_FILES} main.cpp)
 target_link_libraries( ToyWebserver ${OpenCV_LIBS})

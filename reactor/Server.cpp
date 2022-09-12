@@ -25,20 +25,18 @@
 
 const int connBacklog = 200;
 
-Server::Server():fd_(0), port_(0),
-                 threadNum_(0),
-                 maxConnSize_(0), connId(0){};
 
 shared_ptr<EventLoop> Server::getLoop() const {
     return mainLoop;
 }
 
-Server::Server(int port, int threadNum, int maxConnSize, shared_ptr<ServiceFactory> factory):fd_(0), port_(port),
+Server::Server(int port, int threadNum, int maxConnSize, shared_ptr<ServiceFactory> factory):mainLoop(nullptr), subLoops(),
+                                                         threads(),
+                                                         fd_(0),
+                                                         port_(port),
                                                          threadNum_(threadNum),
-                                                         maxConnSize_(maxConnSize),
-                                                         connId(0),
-                                                         mainLoop(nullptr),subLoops(), threads(),
-                                                         connFact(std::move(factory))
+                                                         maxConnSize_(maxConnSize),connFact(std::move(factory)), connSet(maxConnSize),
+                                                         connId(0)
                                                          {
     /*
      * Server 由几个部分组成：
@@ -87,10 +85,13 @@ void Server::handleClose(TcpConnection *pconn){
 //    }
 //    cout<<endl;
 //    cout<<pconn->getName()<<endl;
+    int fdSave = pconn->getChannel()->getfd();
+    auto connSave = connSet[fdSave];//connOfFd[pconn->getName()]; // 增加一个引用，避免析构函数在 lockguard 内调用，减少持有锁的时间
     pconn->release();
-    auto connSave = connOfFd[pconn->getName()]; // 增加一个引用，避免析构函数在 lockguard 内调用，减少持有锁的时间
-    lock_guard<mutex>lock(connMutex);
-    connOfFd.erase(pconn->getName());
+
+//    lock_guard<mutex>lock(connMutex);
+//    connOfFd.erase(pconn->getName());
+    connSet.erase(fdSave);
 }
 
 // 新连接
@@ -117,15 +118,20 @@ void Server::handleNewConn(){
         connId++;
 
         // std::map operator[] not thread safe
-        lock_guard<mutex>lock(connMutex);
-        connOfFd[conn->getName()] = conn;
+//        lock_guard<mutex>lock(connMutex);
+//        connOfFd[conn->getName()] = conn;
+        if(connSet.insert(newFd, conn) == -1){
+            conn->release();
+            return;
+        }
 
         // 线程池中随机
         shared_ptr<EventLoop>&loop = subLoops[rand()%threadNum_];
 //        loop->addChannel(conn->getChannel() ); // 入队列，等待处理 todo 无锁
         if (loop->pushTask(bind(&EventLoop::addChannel, loop, conn->getChannel()) ) != 0){
+            connSet.erase(newFd);
             conn->release();
-            connOfFd.erase(conn->getName());
+//            connOfFd.erase(conn->getName());
         }
     }
 }
@@ -159,4 +165,8 @@ Server::~Server(){
         threads[i]->join(), threads[i].reset();
 
     close(fd_);
+}
+
+Server::Server(): connSet(1){
+
 }

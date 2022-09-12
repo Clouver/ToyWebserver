@@ -15,7 +15,7 @@ set(SOURCE_FILES ../../../reactor/Server.cpp
         #        ppserver.cpp
         ../../../reactor/tools/Timer.cpp ../../../reactor/tools/Timer.h
         ../PingPongService.cpp ../PingPongService.h
-        ../../../reactor/tools/CircleQueue.h ../../../reactor/tools/CircleQueue.cpp ../../../reactor/tools/Buffer.cpp ../../../reactor/tools/Buffer.h)
+        ../../../reactor/tools/CircleQueue.h ../../../reactor/tools/CircleQueue.cpp ../../../reactor/tools/Buffer.cpp ../../../reactor/tools/Buffer.h ../../../reactor/ConnectionSet.cpp ../../../reactor/ConnectionSet.h)
 
 add_executable(ppclient  ${SOURCE_FILES}  ppclient.cpp)
 target_link_libraries(ppclient ${OpenCV_LIBS})
