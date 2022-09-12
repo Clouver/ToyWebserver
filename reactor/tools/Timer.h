@@ -43,9 +43,9 @@ public:
         double t = duration_cast<duration<double>>(steady_clock::now() - timer).count();
         costSum += t;
         cnt++;
-        if(cnt != 0 && (cnt % 10000) == 0 && name_!=""){
+        if(cnt != 0 && (cnt % 1000) == 0 && name_!=""){
 //            cout<<::syscall(SYS_gettid)<<endl;
-//            cout << "Timer "<< name_ <<" average time cost: " << costSum/static_cast<double>(cnt) << endl;
+//            cout << name_ <<" average time cost: " << costSum/static_cast<double>(cnt) << endl;
         }
         return t;
     }
