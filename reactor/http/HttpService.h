@@ -53,10 +53,10 @@ public:
     unsigned long contentLen;
     unsigned long targetLen;
 
-    void SolveRequest(int sk, Buffer &buf) override;
-    void picTransform(int sk);
-    static void getStatic(int sk, string s);
-    static void errorHandle(int sk);
+    int SolveRequest(int sk, Buffer &buf) override;
+    int picTransform(int sk);
+    static int getStatic(int sk, string s);
+    static int errorHandle(int sk);
 
     unsigned long readMultiPart(Buffer& buf, unsigned long shift);
 };

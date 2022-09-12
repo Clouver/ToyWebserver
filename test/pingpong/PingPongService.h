@@ -23,7 +23,7 @@ public:
     static const int BUFFER_SIZE = 4096;
     char buffer[BUFFER_SIZE]{};
 
-    void SolveRequest(int sk, Buffer &buf) override;
+    int SolveRequest(int sk, Buffer &buf) override;
 
     ~PingPongService() override;
 };

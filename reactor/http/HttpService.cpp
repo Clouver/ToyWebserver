@@ -148,7 +148,7 @@ unsigned long ResponseHeaders::Write(int sk){
     return send(sk, buf, sz, MSG_NOSIGNAL);
 }
 
-void HttpService::errorHandle(int sk){
+int HttpService::errorHandle(int sk){
 
     string s = RES_DIR+error_file;
 
@@ -158,7 +158,7 @@ void HttpService::errorHandle(int sk){
         fp = fopen(s.c_str(), "r");
         if(fp == nullptr ){
             std::cout<<"not found "<<s<<endl;
-            return;
+            return -1;
         }
     }
 
@@ -197,11 +197,12 @@ void HttpService::errorHandle(int sk){
     send(sk, buffer, 2, MSG_NOSIGNAL);
 
     fclose(fp);
+    return 0;
 }
 
 
 // Send static file "s" in "RES_DIR" to "sk". The file must be in "files" or default_file.
-void HttpService::getStatic(int sk, string s){
+int HttpService::getStatic(int sk, string s){
 
     if(s=="/")
         s+="index.html";
@@ -216,7 +217,7 @@ void HttpService::getStatic(int sk, string s){
         fp = fopen(s.c_str(), "r");
         if(fp == nullptr ){
             std::cout<<"not found "<<s<<endl;
-            return;
+            return -1;
         }
     }
 
@@ -253,8 +254,9 @@ void HttpService::getStatic(int sk, string s){
     send(sk, buffer, 2, MSG_NOSIGNAL);
 
     fclose(fp);
+    return 0;
 }
-void HttpService::SolveRequest(int sk, Buffer &buf){
+int HttpService::SolveRequest(int sk, Buffer &buf){
     // set SO_LINGER for close socket
 
 //    struct linger so_linger;
@@ -269,16 +271,16 @@ void HttpService::SolveRequest(int sk, Buffer &buf){
         if(multipartBuf.size() == targetLen){
             if(h.method=="POST" && h.url=="/picTrans"){
                 try{
-                    picTransform(sk);
+                    return picTransform(sk);
                 }
                 catch (exception& e){
                     cout<<"picTrans error:" <<e.what()<<endl;
-                    errorHandle(sk);
+                    return errorHandle(sk);
                 }
             }
             multipart = false;
         }
-        return;
+        return 0;
     }
 
     // 不是multipart，则是新请求
@@ -303,25 +305,26 @@ void HttpService::SolveRequest(int sk, Buffer &buf){
 
     // 当前就两个功能，静态文件的获取 和 PicToChar
     if(h.method=="GET"){
-        getStatic(sk, h.url);
+        return getStatic(sk, h.url);
     }
     else if(h.method=="POST" && h.url=="/picTrans"){
 
         if(multipartBuf.size() == targetLen){
             try{
-                picTransform(sk);
+                return picTransform(sk);
             }
             catch (exception& e){
                 cout<<"picTrans error:" <<e.what()<<endl;
-                errorHandle(sk);
+                return errorHandle(sk);
             }
         }
         else
             multipart = true;
+        return 0;
     }
 }
 
-void HttpService::picTransform(int sk){
+int HttpService::picTransform(int sk){
     // 找开头 boundary
     // content body 有额外文件信息 用 回车符（+换行）作为标识，直接跳过。
     int st=0, rcnt=4;

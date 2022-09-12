@@ -11,7 +11,7 @@
 
 class Service {
 public:
-    virtual void SolveRequest(int sk, Buffer &buf)=0;
+    virtual int SolveRequest(int sk, Buffer &buf)=0;
     virtual ~Service() = default;
 };
 

@@ -38,7 +38,9 @@ class Server : public std::enable_shared_from_this<Server>{
 
     shared_ptr<Channel>ch_;
 
-    map<int, shared_ptr<TcpConnection>>connOfFd;
+    map<string, shared_ptr<TcpConnection>>connOfFd;
+    int connId;
+    mutex connMutex;
 
 public:
     Server();

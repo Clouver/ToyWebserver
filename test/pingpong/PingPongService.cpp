@@ -13,7 +13,7 @@ void PingPongServiceFactory::create(std::shared_ptr<Service>& spService){
     spService = std::make_shared<PingPongService>();
 }
 
-void PingPongService::SolveRequest(int sk, Buffer &buf){
+int PingPongService::SolveRequest(int sk, Buffer &buf){
     static Timer timer("\t\twrite");
     timer.tick();
     write(sk, buf.buf(), buf.size());

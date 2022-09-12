@@ -16,10 +16,10 @@
 #include "tools/network.h"
 #include "tools/Timer.h"
 
-shared_ptr<TcpConnection> TcpConnectionFactory::create(int fd, const sockaddr_in* addr, const shared_ptr<Server>& server,
+shared_ptr<TcpConnection> TcpConnectionFactory::create(int fd, string name, const sockaddr_in* addr, const shared_ptr<Server>& server,
                                                        const shared_ptr<ServiceFactory>& serviceFact
                                                        ){
-    shared_ptr<TcpConnection> conn = make_shared<TcpConnection>(fd, addr);
+    shared_ptr<TcpConnection> conn = make_shared<TcpConnection>(fd, name, addr);
     serviceFact->create(conn->service);
 
     SP_Channel channel = conn->getChannel();
@@ -35,8 +35,8 @@ shared_ptr<TcpConnection> TcpConnectionFactory::create(int fd, const sockaddr_in
 }
 
 
-TcpConnection::TcpConnection(int fd, const sockaddr_in* addr)
-:fd_( fd ), alive(true), addrin(*addr), service(), channel(make_shared<Channel>(fd)){
+TcpConnection::TcpConnection(int fd, string name, const sockaddr_in* addr)
+:fd_( fd ), name_(name), alive(true), addrin(*addr), service(), channel(make_shared<Channel>(fd)){
 }
 
 std::shared_ptr<Channel> TcpConnection::getChannel(){
@@ -68,7 +68,10 @@ void TcpConnection::handleRead(){
         channel->setEvent(channel->getEvent()|EPOLLHUP);
     }
     else{
-        service->SolveRequest(channel->getfd(), buf);
+        if (service->SolveRequest(channel->getfd(), buf) != 0){
+            cout<<"solve failed"<<endl;
+            channel->setEvent(channel->getEvent()|EPOLLHUP);
+        }
     }
 }
 
@@ -103,11 +106,15 @@ void TcpConnection::release(){
 
     if(fd_){
         shutdown(fd_, SHUT_WR);
-//        close(fd_); // todo 用rst保证关闭？
+//        close(fd_); // todo 用rst保证立即关闭？
         fd_ = 0;
     }
 }
 
 TcpConnection::~TcpConnection(){
     release(); // 无法等自己 release，channel 存在循环引用延长生命周期。
+}
+
+string TcpConnection::getName() {
+    return name_;
 }

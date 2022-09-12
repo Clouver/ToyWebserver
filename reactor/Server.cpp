@@ -19,12 +19,15 @@
 #include <cassert>
 #include <iostream>
 
+// for setrlimit. fd limit
+#include <sys/resource.h>
+#include <cstring>
 
 const int connBacklog = 200;
 
 Server::Server():fd_(0), port_(0),
                  threadNum_(0),
-                 maxConnSize_(0){};
+                 maxConnSize_(0), connId(0){};
 
 shared_ptr<EventLoop> Server::getLoop() const {
     return mainLoop;
@@ -33,6 +36,7 @@ shared_ptr<EventLoop> Server::getLoop() const {
 Server::Server(int port, int threadNum, int maxConnSize, shared_ptr<ServiceFactory> factory):fd_(0), port_(port),
                                                          threadNum_(threadNum),
                                                          maxConnSize_(maxConnSize),
+                                                         connId(0),
                                                          mainLoop(nullptr),subLoops(), threads(),
                                                          connFact(std::move(factory))
                                                          {
@@ -78,9 +82,14 @@ void Server::handleClose(TcpConnection *pconn){
     SP_Channel ch = pconn->getChannel();
     ch->getRunner()->delChannel(ch);
 
+//    for(auto it=connOfFd.begin(); it!=connOfFd.end(); it++){
+//        cout<< it->first <<" ";
+//    }
+//    cout<<endl;
+//    cout<<pconn->getName()<<endl;
     pconn->release();
-
-    connOfFd.erase(ch->getfd());
+    lock_guard<mutex>lock(connMutex);
+    connOfFd.erase(pconn->getName());
 }
 
 // 新连接
@@ -100,17 +109,22 @@ void Server::handleNewConn(){
         setsockopt(newFd, IPPROTO_TCP, TCP_NODELAY,&t, sizeof t);
 
         shared_ptr<TcpConnection> conn = TcpConnectionFactory::create(newFd,
+                                                                      to_string(newFd) + "_" + to_string(connId),
                                                                       reinterpret_cast<sockaddr_in*>(&addr),
                                                                       shared_from_this(),
                                                                       connFact);
-        connOfFd[newFd] = conn;
+        connId++;
+
+        // std::map operator[] not thread safe
+        lock_guard<mutex>lock(connMutex);
+        connOfFd[conn->getName()] = conn;
 
         // 线程池中随机
         shared_ptr<EventLoop>&loop = subLoops[rand()%threadNum_];
 //        loop->addChannel(conn->getChannel() ); // 入队列，等待处理 todo 无锁
         if (loop->pushTask(bind(&EventLoop::addChannel, loop, conn->getChannel()) ) != 0){
             conn->release();
-            connOfFd.erase(newFd);
+            connOfFd.erase(conn->getName());
         }
     }
 }
@@ -119,6 +133,19 @@ void Server::start(){
 
     setMainLoop();
     runSubreactors();
+
+    rlimit64 lm{};
+    getrlimit64(RLIMIT_NOFILE, &lm);
+    lm.rlim_max = 40960;
+    lm.rlim_cur = 40960;
+    if (setrlimit64(RLIMIT_NOFILE, &lm) == -1){
+        if(errno == EPERM){
+            cout<<"Run in previlege for higher FDs num limit"<<endl;
+        }
+        else{
+            cout<<"?"<<endl;
+        }
+    }
 
     mainLoop->start();
     mainLoop->loop();
