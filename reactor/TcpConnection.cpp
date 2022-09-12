@@ -100,9 +100,6 @@ void TcpConnection::release(){
 
     if(channel){
         channel->kill();
-        channel->setCloseCallback(nullptr); // 循环引用
-        channel->setReadCallback(nullptr);
-        channel->setWriteCallback(nullptr);
         channel.reset(); // 处理1
     }
 

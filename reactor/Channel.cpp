@@ -17,6 +17,9 @@ bool Channel::isAlive() const{
 
 void Channel::kill(){
     alive = false;
+    setCloseCallback(nullptr); // 循环引用
+    setReadCallback(nullptr);
+    setWriteCallback(nullptr);
 }
 
 uint32_t Channel::getEvent() const{
