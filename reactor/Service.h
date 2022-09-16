@@ -5,9 +5,8 @@
 #ifndef TOYWEBSERVER_SERVICE_H
 #define TOYWEBSERVER_SERVICE_H
 
-#include <vector>
-#include <memory>
 #include "tools/Buffer.h"
+#include <memory>
 
 class Service {
 public:
