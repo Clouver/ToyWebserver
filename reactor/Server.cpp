@@ -8,6 +8,7 @@
 #include "EventLoop.h"
 #include "Channel.h"
 #include "tools/network.h"
+#include "tools/systools.h"
 
 #include <sys/socket.h>
 #include <functional>
@@ -35,8 +36,7 @@ Server::Server(int port, int threadNum, int maxConnSize, shared_ptr<ServiceFacto
                                                          fd_(0),
                                                          port_(port),
                                                          threadNum_(threadNum),
-                                                         maxConnSize_(maxConnSize),connFact(std::move(factory)), connSet(maxConnSize),
-                                                         connId(0)
+                                                         maxConnSize_(maxConnSize),connFact(std::move(factory)), connSet(maxConnSize*2)
                                                          {
     /*
      * Server 由几个部分组成：
@@ -99,39 +99,28 @@ void Server::handleNewConn(){
     while(true){
 
         // todo 待封装成 acceptor
-        sockaddr addr{};
-        socklen_t len = sizeof(addr);
-        int newFd = accept(fd_, &addr, &len);
-        if(newFd <= 0)
-            break;
 
-        setSocketNonBlocking(newFd);
-
-        int t=1;
-        setsockopt(newFd, IPPROTO_TCP, TCP_NODELAY,&t, sizeof t);
-
-        shared_ptr<TcpConnection> conn = TcpConnectionFactory::create(newFd,
-                                                                      to_string(newFd) + "_" + to_string(connId),
-                                                                      reinterpret_cast<sockaddr_in*>(&addr),
+        // make connection
+        shared_ptr<TcpConnection> conn = TcpConnectionFactory::acceptAndCreate(fd_,
                                                                       shared_from_this(),
                                                                       connFact);
-        connId++;
+        if(!conn) {
+//            cout<<"failed to accept new connection"<<endl;
+            continue;
+        }
 
-        // std::map operator[] not thread safe
-//        lock_guard<mutex>lock(connMutex);
-//        connOfFd[conn->getName()] = conn;
-        if(connSet.insert(newFd, conn) == -1){
+        // add to connSet
+        if(connSet.insert(conn) == -1){
             conn->release();
             return;
         }
 
         // 线程池中随机
-        shared_ptr<EventLoop>&loop = subLoops[rand()%threadNum_];
-//        loop->addChannel(conn->getChannel() ); // 入队列，等待处理 todo 无锁
+        static int idx=0;
+        shared_ptr<EventLoop>&loop = subLoops[idx++%threadNum_];
         if (loop->pushTask(bind(&EventLoop::addChannel, loop, conn->getChannel()) ) != 0){
-            connSet.erase(newFd);
+            connSet.erase(conn);
             conn->release();
-//            connOfFd.erase(conn->getName());
         }
     }
 }
@@ -141,18 +130,7 @@ void Server::start(){
     setMainLoop();
     runSubreactors();
 
-    rlimit64 lm{};
-    getrlimit64(RLIMIT_NOFILE, &lm);
-    lm.rlim_max = 40960;
-    lm.rlim_cur = 40960;
-    if (setrlimit64(RLIMIT_NOFILE, &lm) == -1){
-        if(errno == EPERM){
-            cout<<"Run in previlege for higher FDs num limit"<<endl;
-        }
-        else{
-            cout<<"?"<<endl;
-        }
-    }
+    setNOFILE(409600);
 
     mainLoop->start();
     mainLoop->loop();
@@ -167,6 +145,6 @@ Server::~Server(){
     close(fd_);
 }
 
-Server::Server(): connSet(1){
+Server::Server():threadNum_(0),fd_(0),port_(),maxConnSize_(0),connSet(1){
 
 }

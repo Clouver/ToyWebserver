@@ -39,11 +39,10 @@ class Server : public std::enable_shared_from_this<Server>{
 
     shared_ptr<Channel>ch_;
 
-    ConnectionSet connSet;
+    ConnectionSet connSet;  // todo 提高效率？
 
-    map<string, shared_ptr<TcpConnection>>connOfFd;
-    int connId;
-    mutex connMutex;    // todo 不如改成 hashmap 避免竞争？
+//    map<string, shared_ptr<TcpConnection>>connOfFd;
+//    mutex connMutex;    // todo 不如改成 hashmap 避免竞争？
 
 public:
     Server();

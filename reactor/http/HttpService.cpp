@@ -708,9 +708,8 @@ unsigned long HttpService::readMultiPart(Buffer& buf, unsigned long shift){
     return buf.size()-shift;
 }
 
-
-void HttpServiceFactory::create(std::shared_ptr<Service>& spService){
-    spService = std::make_shared<HttpService>();
+std::shared_ptr<Service> HttpServiceFactory::create(){
+    return std::make_shared<HttpService>();
 }
 
 

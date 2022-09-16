@@ -17,7 +17,7 @@ public:
 
 class ServiceFactory{
 public:
-    virtual void create(std::shared_ptr<Service>& spService)=0;
+    virtual std::shared_ptr<Service> create()=0;
 };
 
 

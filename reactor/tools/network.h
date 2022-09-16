@@ -23,5 +23,6 @@ ssize_t writeAll(int fd, const string& writeFrom);
 int createFdThenBindListen(int port, int backlog);
 
 int setSocketNonBlocking(int fd);
+int setTcpNoDelay(int fd);
 
 #endif //TOYWEBSERVER_NETWORK_H

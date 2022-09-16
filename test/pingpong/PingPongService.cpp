@@ -9,8 +9,8 @@ size_t PingPongService::sumCnt;
 size_t PingPongService::sumSize;
 mutex PingPongService::m;
 
-void PingPongServiceFactory::create(std::shared_ptr<Service>& spService){
-    spService = std::make_shared<PingPongService>();
+std::shared_ptr<Service> PingPongServiceFactory::create(){
+    return std::make_shared<PingPongService>();
 }
 
 int PingPongService::SolveRequest(int sk, Buffer &buf){
@@ -21,6 +21,7 @@ int PingPongService::SolveRequest(int sk, Buffer &buf){
     cost += timer.tock();
     size += buf.size();
     cnt++;
+    return 0;
 }
 
 PingPongService::~PingPongService(){

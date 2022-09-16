@@ -66,7 +66,7 @@ public:
 };
 
 class HttpServiceFactory : public ServiceFactory{
-    void create(std::shared_ptr<Service>& spService) override;
+    std::shared_ptr<Service> create() override;
 };
 
 #endif //TOYWEBSERVER_HTTPSERVICE_H

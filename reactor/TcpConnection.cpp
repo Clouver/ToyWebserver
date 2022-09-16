@@ -16,14 +16,13 @@
 #include "tools/network.h"
 #include "tools/Timer.h"
 
-shared_ptr<TcpConnection> TcpConnectionFactory::create(int fd, string name, const sockaddr_in* addr, const shared_ptr<Server>& server,
+shared_ptr<TcpConnection> TcpConnectionFactory::create(int fd, const sockaddr_in* addr, const shared_ptr<Server>& server,
                                                        const shared_ptr<ServiceFactory>& serviceFact
                                                        ){
-    shared_ptr<TcpConnection> conn = make_shared<TcpConnection>(fd, name, addr);
-    serviceFact->create(conn->service);
+    shared_ptr<TcpConnection> conn = make_shared<TcpConnection>(fd, addr);
+    conn->service = serviceFact->create();
 
     SP_Channel channel = conn->getChannel();
-
     channel->setOwner(conn);
 
     // 传入原指针避免循环引用
@@ -34,9 +33,28 @@ shared_ptr<TcpConnection> TcpConnectionFactory::create(int fd, string name, cons
     return std::move(conn);
 }
 
+shared_ptr<TcpConnection> TcpConnectionFactory::acceptAndCreate(int fd, const shared_ptr<Server>& server,
+                                                       const shared_ptr<ServiceFactory>& serviceFact
+){
+    // accept
+    sockaddr addr{};
+    socklen_t len = sizeof(addr);
+    int newFd = accept(fd, &addr, &len);
+    int saveErrno = errno;
+    if(newFd <= 0){
+        cout<<"failed accept :"<<strerror(saveErrno)<<endl;
+        return nullptr;
+    }
 
-TcpConnection::TcpConnection(int fd, string name, const sockaddr_in* addr)
-:fd_( fd ), name_(name), alive(true), addrin(*addr), service(), channel(make_shared<Channel>(fd)){
+    // set options
+    setSocketNonBlocking(newFd);
+    setTcpNoDelay(newFd);
+
+    return TcpConnectionFactory::create(newFd, reinterpret_cast<const sockaddr_in *>(&addr), server, serviceFact);
+}
+
+TcpConnection::TcpConnection(int fd, const sockaddr_in* addr)
+:fd_( fd ), alive(true), addrin(*addr), service(), channel(make_shared<Channel>(fd)){
 }
 
 std::shared_ptr<Channel> TcpConnection::getChannel(){
@@ -115,6 +133,3 @@ TcpConnection::~TcpConnection(){
     release(); // 无法等自己 release，channel 存在循环引用延长生命周期。
 }
 
-string TcpConnection::getName() {
-    return name_;
-}

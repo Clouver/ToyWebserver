@@ -10,6 +10,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <cstring>
+#include <netinet/tcp.h>
 
 
 static const int BUFFER_SZ = 4096;
@@ -71,10 +72,18 @@ ssize_t readAll(int fd, Buffer& readTo){
 
 int setSocketNonBlocking(int fd){
     int flag = fcntl(fd, F_GETFL, 0);
-    if (flag == -1) return -1;
-    flag |= O_NONBLOCK;
-    if (fcntl(fd, F_SETFL, flag) == -1) return -1;
+
+    if (flag == -1)
+        return -1;
+    if (fcntl(fd, F_SETFL, flag|O_NONBLOCK) == -1)
+        return -1;
+
     return 0;
+}
+
+int setTcpNoDelay(int fd){
+    int t=1;
+    return setsockopt(fd, IPPROTO_TCP, TCP_NODELAY,&t, sizeof t);
 }
 
 ssize_t writeAll(int fd, const string& writeFrom){
@@ -113,7 +122,7 @@ int createFdThenBindListen(int port, int backlog){
         return -1;
     }
 
-    setSocketNonBlocking(fd);
+//    setSocketNonBlocking(fd);
 
     sockaddr_in tobind{};
     memset(&tobind, 0, sizeof(tobind));

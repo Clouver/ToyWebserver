@@ -7,11 +7,8 @@
 
 #include <sys/epoll.h>
 #include <cstring>
-#include <csignal>
 #include <iostream>
-//#include <cerrno>
-//#include <string>
-//#include <iostream>
+#include <unistd.h>
 
 int EPOLL_WAIT_TIMEOUT = 100000;
 

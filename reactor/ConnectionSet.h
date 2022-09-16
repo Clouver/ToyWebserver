@@ -6,6 +6,7 @@
 #define TOYWEBSERVER_CONNECTIONSET_H
 
 #include "TcpConnection.h"
+#include "Channel.h"
 #include <memory>
 #include <utility>
 #include <iostream>
@@ -41,6 +42,7 @@ public:
         cout<<"failed erase"<<endl;
         return nullptr;
     }
+
     int erase(int fd){
         size_t i = hash_(fd), d=0;
         while(d < sz_ && pFd[(i+d)%sz_] != fd)
@@ -55,7 +57,14 @@ public:
         return -1;
     }
 
-    int insert(int fd, shared_ptr<TcpConnection> spConn){
+    int erase(shared_ptr<TcpConnection>& spConn){
+        if(!spConn)
+            return -1;
+        return erase(spConn->getChannel()->getfd());
+    }
+
+    int insert(shared_ptr<TcpConnection> spConn){
+        int fd = spConn->getChannel()->getfd();
         size_t i = hash_(fd), d=0;
         while(d < sz_ && pFd[(i+d)%sz_] != 0)
             d++;

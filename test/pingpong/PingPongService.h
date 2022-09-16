@@ -30,7 +30,7 @@ public:
 
 class PingPongServiceFactory : public ServiceFactory{
 public:
-    void create(std::shared_ptr<Service>& spService) override;
+    std::shared_ptr<Service> create() override;
 };
 
 #endif //TOYWEBSERVER_PINGPONGSERVICE_H
