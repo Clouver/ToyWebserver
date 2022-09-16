@@ -9,6 +9,7 @@
 #include <memory>
 #include <utility>
 #include <iostream>
+#include <cstring>
 
 using namespace std;
 
@@ -27,6 +28,7 @@ private:
 public:
     ConnectionSet() = delete;
     explicit ConnectionSet(size_t size):sz_(size), pConn(new shared_ptr<TcpConnection>[size]), pFd(new int[size]){
+        memset(pFd, 0, size*sizeof(*pFd));
     }
 
     shared_ptr<TcpConnection> operator[](int fd){
