@@ -24,7 +24,7 @@
 #include <sys/resource.h>
 #include <cstring>
 
-const int connBacklog = 200;
+const int connBacklog = 10000;
 
 
 shared_ptr<EventLoop> Server::getLoop() const {
@@ -96,17 +96,16 @@ void Server::handleClose(TcpConnection *pconn){
 
 // 新连接
 void Server::handleNewConn(){
+
+    // todo 待封装成 acceptor
     while(true){
-
-        // todo 待封装成 acceptor
-
         // make connection
         shared_ptr<TcpConnection> conn = TcpConnectionFactory::acceptAndCreate(fd_,
-                                                                      shared_from_this(),
-                                                                      connFact);
+                                                                               shared_from_this(),
+                                                                               connFact);
         if(!conn) {
 //            cout<<"failed to accept new connection"<<endl;
-            continue;
+            return;
         }
 
         // add to connSet
@@ -118,11 +117,13 @@ void Server::handleNewConn(){
         // 线程池中随机
         static int idx=0;
         shared_ptr<EventLoop>&loop = subLoops[idx++%threadNum_];
-        if (loop->pushTask(bind(&EventLoop::addChannel, loop, conn->getChannel()) ) != 0){
+        if (loop->pushTask(bind(&EventLoop::addChannel, loop.get(), conn->getChannel()) ) != 0){
             connSet.erase(conn);
             conn->release();
         }
     }
+
+
 }
 
 void Server::start(){
@@ -130,13 +131,14 @@ void Server::start(){
     setMainLoop();
     runSubreactors();
 
-    setNOFILE(409600);
+    setNOFILE(809200);
 
     mainLoop->start();
     mainLoop->loop();
 }
 
 void Server::stop(){
+    mainLoop->stop();
     for(int i=0; i<threadNum_; i++)
         subLoops[i]->stop();
     for(int i=0; i<threadNum_; i++)

@@ -22,7 +22,7 @@ using namespace std;
 //cout<<chrono::duration_cast<chrono::duration<double>>(t2 - t1).count()<<endl;
 
 const bool TIME_COST_DEBUG = true;
-static const size_t TASK_QUEUE_SIZE = 5000; // todo
+static const size_t TASK_QUEUE_SIZE = 40000; // todo
 
 EventLoop::EventLoop():qTask(TASK_QUEUE_SIZE), loop_(true), poller(make_shared<Poller>()){
 
@@ -81,8 +81,10 @@ void EventLoop::pollAndHandle() {
 }
 
 int EventLoop::pushTask(const function<void()> &f){
-    if (qTask.push(f) != 0)
+    if (qTask.push(f) != 0){
+        cout<<"failed to push task\n";
         return -1;
+    }
     wakeup();
     return 0;
 }

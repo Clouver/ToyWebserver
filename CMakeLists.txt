@@ -10,7 +10,8 @@ add_subdirectory(test/pingpong/ppserver)
 add_subdirectory(test/pingpong/ppclient)
 
 set(CMAKE_CXX_STANDARD 11)
-SET(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-pthread -Wall -Og -fsanitize=address -fno-omit-frame-pointer")
+SET(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-pthread -Wall -O3 ")
+# sanitizer not compactiple with valgrind -fsanitize=address -fno-omit-frame-pointer
 
 set(SOURCE_FILES reactor/Server.cpp
         reactor/EventLoop.cpp

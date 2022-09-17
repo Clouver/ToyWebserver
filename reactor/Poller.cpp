@@ -10,7 +10,7 @@
 #include <iostream>
 #include <unistd.h>
 
-int EPOLL_WAIT_TIMEOUT = 100000;
+int EPOLL_WAIT_TIMEOUT = 1000;
 
 Poller::Poller(){
     max_events = 1000; // todo
@@ -65,7 +65,9 @@ int Poller::del(const SP_Channel& channel){
         return -1;
     channelOfFd.erase(fd);
     epoll_event e{};
-    epoll_ctl(pollfd, EPOLL_CTL_DEL, fd, &e);
+    if( epoll_ctl(pollfd, EPOLL_CTL_DEL, fd, &e) == -1){
+        cout<<"failed to delete from epoll:"<<strerror(errno)<<endl;
+    }
 
     return 0;
 }

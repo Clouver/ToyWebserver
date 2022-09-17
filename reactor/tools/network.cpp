@@ -122,7 +122,7 @@ int createFdThenBindListen(int port, int backlog){
         return -1;
     }
 
-//    setSocketNonBlocking(fd);
+    setSocketNonBlocking(fd);   // todo 需要是非阻塞的！ 否则阻塞在 handleRead 中，server无法正常停止。
 
     sockaddr_in tobind{};
     memset(&tobind, 0, sizeof(tobind));

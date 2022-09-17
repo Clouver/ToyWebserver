@@ -42,7 +42,7 @@ shared_ptr<TcpConnection> TcpConnectionFactory::acceptAndCreate(int fd, const sh
     int newFd = accept(fd, &addr, &len);
     int saveErrno = errno;
     if(newFd <= 0){
-        cout<<"failed accept :"<<strerror(saveErrno)<<endl;
+//        cout<<"failed accept :"<<strerror(saveErrno)<<endl;
         return nullptr;
     }
 
@@ -123,8 +123,10 @@ void TcpConnection::release(){
     }
 
     if(fd_){
-        shutdown(fd_, SHUT_WR);
-//        close(fd_); // todo 用rst保证立即关闭？
+        if(shutdown(fd_, SHUT_WR)!=0)
+            cout<<"failed shutdown?\n";
+        if(close(fd_)!=0)
+            cout<<"failed close?\n"; // todo 用rst保证立即关闭？
         fd_ = 0;
     }
 }
