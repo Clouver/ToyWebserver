@@ -18,7 +18,7 @@ shared_ptr<Server> serverForSig;
 void handleSigInt(int sig){
     if (sig == SIGINT){
         cout<<"Exit"<<endl;
-        serverForSig->getLoop()->stop();
+        serverForSig->stop();
 //        serverForSig.reset();
 //        _exit(0);
     }

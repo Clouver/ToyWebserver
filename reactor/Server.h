@@ -59,6 +59,8 @@ public:
 
     void start();
 
+    void stop();
+
     // todo 存在conn已销毁的可能。 只用于channel回调的情况下安全。
     void handleClose(TcpConnection *pconn);
 

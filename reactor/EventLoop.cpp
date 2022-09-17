@@ -22,7 +22,7 @@ using namespace std;
 //cout<<chrono::duration_cast<chrono::duration<double>>(t2 - t1).count()<<endl;
 
 const bool TIME_COST_DEBUG = true;
-static const size_t TASK_QUEUE_SIZE = 4;
+static const size_t TASK_QUEUE_SIZE = 5000; // todo
 
 EventLoop::EventLoop():qTask(TASK_QUEUE_SIZE), loop_(true), poller(make_shared<Poller>()){
 

@@ -9,6 +9,7 @@
 #include <array>
 #include <exception>
 #include <vector>
+#include <iostream>
 
 template<class T>
 class CircleQueue{
@@ -43,8 +44,10 @@ template<class T> CircleQueue<T>::CircleQueue(size_t queueSize):rear_(0), front_
 template<class T>
 int CircleQueue<T>::push(const T& t){
     size_t nxt = (rear_ + 1) % size_;
-    if (front_ == nxt)
+    if (front_ == nxt){
+        std::cout<<"circle queue full\n";
         return -1;
+    }
     q[rear_] = t;
     rear_ = nxt;
     return 0;

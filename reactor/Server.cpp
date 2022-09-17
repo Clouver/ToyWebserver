@@ -136,13 +136,20 @@ void Server::start(){
     mainLoop->loop();
 }
 
-Server::~Server(){
+void Server::stop(){
     for(int i=0; i<threadNum_; i++)
-        subLoops[i]->stop(), subLoops[i].reset();
+        subLoops[i]->stop();
     for(int i=0; i<threadNum_; i++)
-        threads[i]->join(), threads[i].reset();
-
+        threads[i]->join();
+    for(int i=0; i<threadNum_; i++)
+        subLoops[i].reset(), threads[i].reset();
     close(fd_);
+    fd_ = 0;
+}
+
+Server::~Server(){
+    if(fd_)
+        stop();
 }
 
 Server::Server():threadNum_(0),fd_(0),port_(),maxConnSize_(0),connSet(1){

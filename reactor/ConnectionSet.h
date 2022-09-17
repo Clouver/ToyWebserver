@@ -58,8 +58,10 @@ public:
     }
 
     int erase(shared_ptr<TcpConnection>& spConn){
-        if(!spConn)
+        if(!spConn){
+            cout<<"erase failed\n";
             return -1;
+        }
         return erase(spConn->getChannel()->getfd());
     }
 
